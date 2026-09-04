@@ -5,7 +5,7 @@ import os
 import time
 
 import pika
-import psycopg2
+import psycopg
 from stream_manager import GPXStreamManager
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
@@ -31,21 +31,22 @@ stream_mgr = GPXStreamManager(output_base_dir=OUTPUT_BASE_DIR, buffer_size=BUFFE
 
 
 def get_db_conn():
-    return psycopg2.connect(
+    return psycopg.connect(
         host=DB_HOST, port=DB_PORT, dbname=DB_NAME, user=DB_USER, password=DB_PASSWORD
     )
 
 
 def save_shift_metadata(session_id: str, rider_id: str, gpx_path: str, distance_km: float, duration_min: float) -> None:
     try:
-        with get_db_conn() as conn, conn.cursor() as cur:
-            cur.execute(
-                """
-                INSERT INTO rider_shifts (session_id, rider_id, gpx_path, total_distance_km, duration_min)
-                VALUES (%s, %s, %s, %s, %s)
-                """,
-                (session_id, rider_id, gpx_path, distance_km, duration_min),
-            )
+        with get_db_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    INSERT INTO rider_shifts (session_id, rider_id, gpx_path, total_distance_km, duration_min)
+                    VALUES (%s, %s, %s, %s, %s)
+                    """,
+                    (session_id, rider_id, gpx_path, distance_km, duration_min),
+                )
     except Exception:
         logger.exception("Errore salvataggio metadati turno su Postgres (rider=%s session=%s)", rider_id, session_id)
 

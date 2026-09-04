@@ -17,11 +17,18 @@ class Config:
     DB_PORT = os.environ.get('DB_PORT', '5432')
     DB_NAME = os.environ.get('DB_NAME', 'testlogin')
 
-    # Costruzione sicura dell'URI SQLAlchemy usando psycopg (psycopg3)
-    SQLALCHEMY_DATABASE_URI = (
-        os.environ.get('DATABASE_URL') or 
-        f"postgresql+psycopg://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
-    )
+    # Recupero e costruzione sicura dell'URI SQLAlchemy usando psycopg (psycopg3)
+    _raw_db_url = os.environ.get('DATABASE_URL')
+    if _raw_db_url:
+        if _raw_db_url.startswith('postgres://'):
+            _raw_db_url = _raw_db_url.replace('postgres://', 'postgresql+psycopg://', 1)
+        elif _raw_db_url.startswith('postgresql://') and not _raw_db_url.startswith('postgresql+'):
+            _raw_db_url = _raw_db_url.replace('postgresql://', 'postgresql+psycopg://', 1)
+        SQLALCHEMY_DATABASE_URI = _raw_db_url
+    else:
+        SQLALCHEMY_DATABASE_URI = (
+            f"postgresql+psycopg://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+        )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # --- FLASK-SECURITY CONFIGURATIONS ---
