@@ -1,6 +1,6 @@
 import os
 
-from flask import Blueprint, abort, render_template, send_file
+from flask import Blueprint, abort, jsonify, render_template, send_file
 from flask_security import current_user, login_required
 
 from app.auth.models import FallEvent, RiderShift
@@ -28,3 +28,13 @@ def download_gpx(shift_id):
         abort(404, description="Il file GPX non è ancora stato generato o è stato rimosso.")
         
     return send_file(gpx_path, as_attachment=True, download_name=f"session_{shift.session_id}.gpx")
+
+@core_bp.route("/trigger_sos", methods=["POST"])
+@login_required
+def trigger_sos():
+    """Riceve la notifica SOS lato server. Al momento logga soltanto l'evento;
+    l'invio effettivo (SMS/email ai contatti d'emergenza) è fuori scope qui
+    e va collegato a un servizio di notifica dedicato."""
+    from flask import current_app
+    current_app.logger.warning("SOS attivato dall'utente id=%s", current_user.id)
+    return jsonify({"status": "received"}), 200

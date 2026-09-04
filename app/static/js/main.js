@@ -55,16 +55,18 @@ async function flushBuffer() {
     dataBuffer = [];
     
     try {
-        await fetch('/stream', {
+        const res = await fetch('/stream', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(payload)
         });
+        if (!res.ok) {
+            console.error("Errore invio dati:", res.status, await res.text());
+        }
     } catch (err) {
         console.error("Errore invio dati:", err);
     }
 }
-
 
 // ==========================================
 // GESTIONE DELL'ALLARME SOS E CONTO ALLA ROVESCIA
@@ -153,7 +155,7 @@ function tick() {
     // (lat, lon, velocità, timestamp, esito fall detection, identità rider/sessione per il worker GPX):
     // nessun dato grezzo dei sensori.
     dataBuffer.push({
-        rider_id: window.RIDER_ID,
+        rider_id: String(window.RIDER_ID),
         session_id: sessionId,
         lat: row.lat,
         lon: row.lon,
@@ -280,7 +282,9 @@ function stopTracking() {
             fetch('/session/end', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ rider_id: window.RIDER_ID, session_id: sessionId })
+                body: JSON.stringify({ rider_id: String(window.RIDER_ID), session_id: sessionId })
+            }).then(res => {
+                if (!res.ok) console.error("Errore chiusura sessione:", res.status);
             }).catch(err => console.error("Errore chiusura sessione:", err));
             sessionId = null;
         }

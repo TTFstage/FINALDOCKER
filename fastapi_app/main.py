@@ -5,7 +5,7 @@ import os
 
 import pika
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
@@ -30,11 +30,23 @@ class TelemetryPoint(BaseModel):
     is_confirmed_fall: bool = False
     is_cancelled_fall: bool = False
 
+    @field_validator("rider_id", mode="before")
+    @classmethod
+    def _coerce_rider_id(cls, v):
+        # Accetta sia stringa che numero: alcuni client (es. tojson su un int)
+        # possono inviare rider_id come JSON number invece che come stringa.
+        return str(v) if v is not None else v
+
 
 class SessionEnd(BaseModel):
     """Segnala la chiusura di un turno di tracciamento: fa scattare la chiusura del file GPX."""
     rider_id: str
     session_id: str
+
+    @field_validator("rider_id", mode="before")
+    @classmethod
+    def _coerce_rider_id(cls, v):
+        return str(v) if v is not None else v
 
 
 class RabbitMQPublisher:

@@ -51,6 +51,28 @@ def save_shift_metadata(session_id: str, rider_id: str, gpx_path: str, distance_
         logger.exception("Errore salvataggio metadati turno su Postgres (rider=%s session=%s)", rider_id, session_id)
 
 
+def save_fall_event(session_id: str, rider_id: str, lat: float | None, lon: float | None, timestamp_ms: float) -> None:
+    """Persiste una caduta confermata su Postgres (tabella fall_events)."""
+    if lat is None or lon is None:
+        logger.warning(
+            "Caduta confermata senza coordinate GPS valide, non salvata (rider=%s session=%s)",
+            rider_id, session_id,
+        )
+        return
+    try:
+        with get_db_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    INSERT INTO fall_events (session_id, user_id, latitude, longitude, "timestamp")
+                    VALUES (%s, %s, %s, %s, to_timestamp(%s))
+                    """,
+                    (session_id, rider_id, lat, lon, timestamp_ms / 1000.0),
+                )
+    except Exception:
+        logger.exception("Errore salvataggio caduta su Postgres (rider=%s session=%s)", rider_id, session_id)
+
+
 def on_message(channel, method, properties, body: bytes) -> None:
     try:
         envelope = json.loads(body)
@@ -65,6 +87,14 @@ def on_message(channel, method, properties, body: bytes) -> None:
                 elev=None,
                 timestamp=envelope["timestamp"],
             )
+            if envelope.get("is_confirmed_fall"):
+                save_fall_event(
+                    session_id=envelope["session_id"],
+                    rider_id=envelope["rider_id"],
+                    lat=envelope.get("lat"),
+                    lon=envelope.get("lon"),
+                    timestamp_ms=envelope["timestamp"],
+                )
         elif msg_type == "session_end":
             result = stream_mgr.close_session(
                 session_id=envelope["session_id"],
