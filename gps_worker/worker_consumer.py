@@ -1,0 +1,111 @@
+"""Consumer RabbitMQ: alimenta il GPXStreamManager e registra i metadati dei tracciati su PostgreSQL."""
+import json
+import logging
+import os
+import time
+
+import pika
+import psycopg2
+from stream_manager import GPXStreamManager
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+logger = logging.getLogger(__name__)
+
+RABBITMQ_HOST = os.getenv("RABBITMQ_HOST", "rabbitmq")
+RABBITMQ_PORT = int(os.getenv("RABBITMQ_PORT", "5672"))
+RABBITMQ_USER = os.getenv("RABBITMQ_USER", "guest")
+RABBITMQ_PASSWORD = os.getenv("RABBITMQ_PASSWORD", "guest")
+RABBITMQ_QUEUE = os.getenv("RABBITMQ_QUEUE", "telemetry_stream")
+
+DB_HOST = os.getenv("DB_HOST", "postgres")
+DB_PORT = int(os.getenv("DB_PORT", "5432"))
+DB_NAME = os.getenv("DB_NAME", "sensor_app")
+DB_USER = os.getenv("DB_USER", "sensor_app")
+DB_PASSWORD = os.getenv("DB_PASSWORD", "sensor_app")
+
+OUTPUT_BASE_DIR = os.getenv("OUTPUT_BASE_DIR", "/data/volume_gpx_storage")
+BUFFER_SIZE = int(os.getenv("BUFFER_SIZE", "50"))
+RDP_EPSILON = float(os.getenv("RDP_EPSILON", "0.00004"))
+
+stream_mgr = GPXStreamManager(output_base_dir=OUTPUT_BASE_DIR, buffer_size=BUFFER_SIZE)
+
+
+def get_db_conn():
+    return psycopg2.connect(
+        host=DB_HOST, port=DB_PORT, dbname=DB_NAME, user=DB_USER, password=DB_PASSWORD
+    )
+
+
+def save_shift_metadata(session_id: str, rider_id: str, gpx_path: str, distance_km: float, duration_min: float) -> None:
+    try:
+        with get_db_conn() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO rider_shifts (session_id, rider_id, gpx_path, total_distance_km, duration_min)
+                VALUES (%s, %s, %s, %s, %s)
+                """,
+                (session_id, rider_id, gpx_path, distance_km, duration_min),
+            )
+    except Exception:
+        logger.exception("Errore salvataggio metadati turno su Postgres (rider=%s session=%s)", rider_id, session_id)
+
+
+def on_message(channel, method, properties, body: bytes) -> None:
+    try:
+        envelope = json.loads(body)
+        msg_type = envelope.get("type")
+
+        if msg_type == "point":
+            stream_mgr.add_point(
+                session_id=envelope["session_id"],
+                rider_id=envelope["rider_id"],
+                lat=envelope.get("lat"),
+                lon=envelope.get("lon"),
+                elev=None,
+                timestamp=envelope["timestamp"],
+            )
+        elif msg_type == "session_end":
+            result = stream_mgr.close_session(
+                session_id=envelope["session_id"],
+                rider_id=envelope["rider_id"],
+                apply_rdp=True,
+                epsilon=RDP_EPSILON,
+            )
+            if result is not None:
+                final_path, distance_km, duration_min = result
+                save_shift_metadata(envelope["session_id"], envelope["rider_id"], final_path, distance_km, duration_min)
+        else:
+            logger.warning("Messaggio con type sconosciuto ignorato: %s", msg_type)
+
+    except Exception:
+        logger.exception("Errore elaborazione messaggio, verrà comunque confermato (no data loss critico).")
+    finally:
+        channel.basic_ack(delivery_tag=method.delivery_tag)
+
+
+def run() -> None:
+    credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASSWORD)
+    params = pika.ConnectionParameters(
+        host=RABBITMQ_HOST, port=RABBITMQ_PORT, credentials=credentials, heartbeat=30
+    )
+
+    while True:
+        try:
+            connection = pika.BlockingConnection(params)
+            channel = connection.channel()
+            channel.queue_declare(queue=RABBITMQ_QUEUE, durable=True)
+            channel.basic_qos(prefetch_count=20)
+            channel.basic_consume(queue=RABBITMQ_QUEUE, on_message_callback=on_message)
+
+            logger.info("Worker GPS in ascolto sulla coda '%s'...", RABBITMQ_QUEUE)
+            channel.start_consuming()
+        except pika.exceptions.AMQPConnectionError:
+            logger.warning("RabbitMQ non raggiungibile, nuovo tentativo tra 5s...")
+            time.sleep(5)
+        except KeyboardInterrupt:
+            logger.info("Interruzione richiesta, chiusura worker.")
+            break
+
+
+if __name__ == "__main__":
+    run()

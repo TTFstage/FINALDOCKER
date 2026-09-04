@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}Pagina Privata{% endblock %}
+
+{% block content %}
+    <h2>Area Riservata</h2>
+
+    {% if error %}
+    <p style="color: red;">{{ error }}</p>
+    {% endif %}
+
+    <p>Ciao, <strong>{{ username }}</strong>! Questa è una pagina protetta visibile solo agli utenti autenticati.</p>
+    
+    <p>Email: <strong>{{ email }}</strong></p>
+
+    {% if phone_number %}
+    <p>Numero di telefono: <strong>{{ phone_number }}</strong></p>
+    {% endif %}
+    
+    <p><a href="{{ url_for('core.index') }}">Home</a></p>
+
+    <br>
+
+    <!-- Form per il Logout aggiornato -->
+    <form method="POST" action="{{ url_for('security.logout') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        <button type="submit">Logout</button>
+    </form>
+
+    <br><hr><br>
+
+    <!-- Form per l'eliminazione dell'account -->
+    <form method="POST" action="{{ url_for('auth.delete_account') }}" onsubmit="return confirm('Sei sicuro di voler eliminare definitivamente il tuo account?');">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        <button type="submit" style="background-color: red; color: white;">Elimina Account</button>
+    </form>
+{% endblock %}

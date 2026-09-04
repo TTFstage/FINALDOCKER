@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}Home Page{% endblock %}
+
+{% block content %}
+    <h1>Benvenuto nella Web App</h1>
+
+    <!-- Gestione dello stato dell'utente -->
+    {% if current_user and current_user.is_authenticated %}
+        <p>Ciao, <strong>{{ current_user.username }}</strong>!</p>
+        <p><a href="{{ url_for('auth.me') }}">Vai alla tua area riservata</a></p>
+        
+        <hr>
+        <h2>Telemetry Raider</h2>
+        <p>Sensori, Dynamic Hz & SOS Automatico</p>
+
+        <!-- OVERLAY COUNTDOWN SOS -->
+        <div id="crash-alert" style="display: none; background-color: red; color: white; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+            <h2>⚠️ INCIDENTE RILEVATO!</h2>
+            <p>Invio Segnalazione SOS tra:</p>
+            <div id="timer-display" style="font-size: 2em; font-weight: bold;">10</div>
+            <button class="btn-cancel" onclick="cancelSOS()" style="margin-top: 10px;">STO BENE (ANNULLA SOS)</button>
+        </div>
+
+        <div style="margin-bottom: 20px;">
+            <button id="btn-start" onclick="startTracking()">Avvia Tracciamento</button>
+            <button id="btn-stop" onclick="stopTracking()" disabled>Ferma Tracciamento</button>
+        </div>
+
+        <p id="status">Stato: In attesa di avvio</p>
+        <hr>
+        
+        <h3>Le tue Sessioni GPX</h3>
+        <ul>
+            {% for shift in shifts %}
+                <li>
+                    {{ shift.created_at.strftime('%Y-%m-%d %H:%M') }} - Distanza: {{ "%.2f"|format(shift.total_distance_km) if shift.total_distance_km else "0.00" }} km 
+                    <a href="{{ url_for('core.download_gpx', shift_id=shift.id) }}">[Scarica GPX]</a>
+                </li>
+            {% else %}
+                <li>Nessuna sessione registrata.</li>
+            {% endfor %}
+        </ul>
+        
+        <h3>Le tue Cadute</h3>
+        <ul>
+            {% for fall in falls %}
+                <li>
+                    {{ fall.timestamp.strftime('%Y-%m-%d %H:%M') }} - Lat: {{ fall.latitude }}, Lng: {{ fall.longitude }}
+                </li>
+            {% else %}
+                <li>Nessuna caduta registrata.</li>
+            {% endfor %}
+        </ul>
+        <hr>
+
+        <form method="POST" action="{{ url_for('security.logout') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <button type="submit">Logout</button>
+        </form>
+    {% else %}
+        <p>Non sei ancora autenticato.</p>
+        <p><a href="{{ url_for('security.login') }}">Accedi (Login)</a></p>
+    {% endif %}
+{% endblock %}
+
+{% block scripts %}
+    {% if current_user and current_user.is_authenticated %}
+        <script>window.RIDER_ID = {{ current_user.id | tojson }};</script>
+        <script src="{{ url_for('static', filename='js/HeadingEstimator.js') }}"></script>
+        <script src="{{ url_for('static', filename='js/SignalProcessor.js') }}"></script>
+        <script src="{{ url_for('static', filename='js/FallDetector.js') }}"></script>
+        <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% endif %}
+{% endblock %}

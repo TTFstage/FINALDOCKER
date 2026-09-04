@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}I Miei Gruppi - Web App{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+    <div>
+        <h1 style="font-size: 1.75rem; font-weight: 700; color: var(--text-main);">I Miei Gruppi</h1>
+        <p style="color: var(--text-muted); font-size: 0.95rem;">Visualizza e gestisci i gruppi a cui partecipi</p>
+    </div>
+    <div style="display: flex; gap: 0.75rem;">
+        <a href="{{ url_for('group.join') }}" class="btn btn-secondary">
+            🔑 Entra con Codice
+        </a>
+        <a href="{{ url_for('group.create') }}" class="btn btn-primary">
+            + Crea Nuovo Gruppo
+        </a>
+    </div>
+</div>
+
+{% if memberships %}
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem;">
+        {% for m in memberships %}
+            {% set g = m.group %}
+            <div class="card" style="display: flex; flex-direction: column; justify-content: space-between; margin-bottom: 0;">
+                <div>
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem;">
+                        <h2 style="font-size: 1.2rem; font-weight: 700; color: var(--text-main);">{{ g.name }}</h2>
+                        <span style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; padding: 0.2rem 0.5rem; border-radius: 4px; background-color: {% if m.role == 'owner' %}#fef3c7; color: #92400e;{% else %}#e0e7ff; color: #3730a3;{% endif %}">
+                            {{ m.role }}
+                        </span>
+                    </div>
+
+                    {% if g.description %}
+                        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem; line-height: 1.4;">
+                            {{ g.description }}
+                        </p>
+                    {% else %}
+                        <p style="color: #94a3b8; font-size: 0.9rem; font-style: italic; margin-bottom: 1rem;">
+                            Nessuna descrizione.
+                        </p>
+                    {% endif %}
+
+                    <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+                        <span class="group-code-badge" style="font-size: 0.95rem; padding: 0.25rem 0.5rem;">{{ g.code }}</span>
+                    </div>
+                </div>
+
+                <div style="border-top: 1px solid var(--border); padding-top: 1rem; display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 0.8rem; color: var(--text-muted);">
+                        👥 {{ g.members|length }} {% if g.members|length == 1 %}membro{% else %}membri{% endif %}
+                    </span>
+                    <a href="{{ url_for('group.detail', group_id=g.id) }}" class="btn btn-secondary btn-sm">
+                        Apri Scheda →
+                    </a>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="card" style="text-align: center; padding: 3.5rem 1.5rem;">
+        <div style="font-size: 3rem; margin-bottom: 1rem;">👥</div>
+        <h2 style="font-size: 1.35rem; font-weight: 700; margin-bottom: 0.5rem;">Non fai ancora parte di nessun gruppo</h2>
+        <p style="color: var(--text-muted); max-width: 480px; margin: 0 auto 1.75rem auto;">
+            Puoi iniziare creando il tuo primo gruppo e condividendo il link o il codice, oppure unirti a un gruppo esistente.
+        </p>
+        <div style="display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap;">
+            <a href="{{ url_for('group.create') }}" class="btn btn-primary">
+                Crea Gruppo Ora
+            </a>
+            <a href="{{ url_for('group.join') }}" class="btn btn-secondary">
+                Inserisci un Codice
+            </a>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}

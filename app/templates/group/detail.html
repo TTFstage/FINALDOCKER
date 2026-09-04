@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+
+{% block title %}{{ group.name }} - Dettaglio Gruppo{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1.5rem;">
+    <a href="{{ url_for('group.index') }}" style="color: var(--text-muted); text-decoration: none; font-size: 0.9rem;">
+        ← Torna ai miei gruppi
+    </a>
+</div>
+
+<!-- Header Gruppo -->
+<div class="card" style="margin-bottom: 1.5rem;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <h1 style="font-size: 1.85rem; font-weight: 700; color: var(--text-main);">{{ group.name }}</h1>
+                <span style="font-size: 0.8rem; font-weight: 600; text-transform: uppercase; padding: 0.25rem 0.6rem; border-radius: 4px; background-color: {% if membership.role == 'owner' %}#fef3c7; color: #92400e;{% else %}#e0e7ff; color: #3730a3;{% endif %}">
+                    Il tuo ruolo: {{ membership.role }}
+                </span>
+            </div>
+            {% if group.description %}
+                <p style="color: var(--text-muted); font-size: 1rem; margin-top: 0.5rem;">
+                    {{ group.description }}
+                </p>
+            {% endif %}
+            <p style="color: #94a3b8; font-size: 0.85rem; margin-top: 0.5rem;">
+                Creato il: {{ group.created_at.strftime('%d/%m/%Y alle %H:%M') if group.created_at else 'N/A' }} UTC
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- Sezione Codice e Link d'Invito -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
+    
+    <!-- Box Codice Univoco -->
+    <div class="card" style="margin-bottom: 0;">
+        <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+            <span>🔑</span> Codice Gruppo
+        </h3>
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem;">
+            Gli utenti possono accedere inserendo manualmente questo codice o digitandolo senza trattini.
+        </p>
+
+        <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+            <span class="group-code-badge" id="groupCodeText">{{ group.code }}</span>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="copyToClipboard('{{ group.code }}', this)">
+                📋 Copia Codice
+            </button>
+            {% if membership.role in ['owner', 'admin'] %}
+            <form method="POST" action="{{ url_for('group.generate_code', group_id=group.id) }}" style="display: inline;" onsubmit="return confirm('Sei sicuro di voler rigenerare il codice? Il vecchio codice non funzionerà più per accedere al gruppo.');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <button type="submit" class="btn btn-secondary btn-sm" title="Rigenera codice">
+                    🔄 Rigenera
+                </button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Box Link di Invito & Token di Sicurezza -->
+    <div class="card" style="margin-bottom: 0;">
+        <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+            <span>🔗</span> Link d'Invito Rapido
+        </h3>
+
+        {% if invite_url %}
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 0.75rem;">
+                Condividi questo link per far entrare nuovi membri direttamente:
+            </p>
+            <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+                <input type="text" class="form-control" value="{{ invite_url }}" readonly id="inviteInput" style="font-size: 0.85rem; background-color: #f8fafc;">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="copyToClipboard('{{ invite_url }}', this)">
+                    📋 Copia
+                </button>
+            </div>
+
+            {% if membership.role in ['owner', 'admin'] %}
+            <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                <form method="POST" action="{{ url_for('group.generate_token', group_id=group.id) }}" style="display: inline;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <button type="submit" class="btn btn-secondary btn-sm" title="Genera un nuovo token rendendo non validi i link precedenti">
+                        🔄 Rigenera Link
+                    </button>
+                </form>
+
+                <form method="POST" action="{{ url_for('group.revoke_token', group_id=group.id) }}" style="display: inline;" onsubmit="return confirm('Sei sicuro di voler revocare il link? Gli utenti con il vecchio link non potranno più accedere.');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <button type="submit" class="btn btn-danger btn-sm">
+                        🚫 Revoca Link
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+        {% else %}
+            <div style="background-color: #fffbeb; border: 1px solid #fef3c7; color: #92400e; padding: 0.75rem 1rem; border-radius: var(--radius); font-size: 0.9rem; margin-bottom: 1rem;">
+                ⚠️ <strong>Nessun link attivo.</strong> Il token d'invito è stato revocato. I link precedenti sono disabilitati.
+            </div>
+            {% if membership.role in ['owner', 'admin'] %}
+            <form method="POST" action="{{ url_for('group.generate_token', group_id=group.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <button type="submit" class="btn btn-primary btn-sm">
+                    ✨ Genera Nuovo Link d'Invito
+                </button>
+            </form>
+            {% endif %}
+        {% endif %}
+    </div>
+</div>
+
+<!-- Tabella Membri -->
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+        <h3 style="font-size: 1.2rem; font-weight: 700;">
+            Membri del Gruppo ({{ members|length }})
+        </h3>
+    </div>
+
+    <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.95rem;">
+            <thead>
+                <tr style="border-bottom: 2px solid var(--border); color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase;">
+                    <th style="padding: 0.75rem 0.5rem;">Utente</th>
+                    <th style="padding: 0.75rem 0.5rem;">Email</th>
+                    <th style="padding: 0.75rem 0.5rem;">Ruolo</th>
+                    <th style="padding: 0.75rem 0.5rem;">Data Ingresso</th>
+                    {% if membership.role == 'owner' %}
+                    <th style="padding: 0.75rem 0.5rem; text-align: right;">Azioni</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for m in members %}
+                    <tr style="border-bottom: 1px solid var(--border);">
+                        <td style="padding: 0.85rem 0.5rem; font-weight: 600;">
+                            {{ m.user.username }}
+                            {% if m.user.id == current_user.id %}
+                                <span style="font-size: 0.75rem; color: var(--primary); font-weight: 500;">(Tu)</span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 0.85rem 0.5rem; color: var(--text-muted);">
+                            {{ m.user.email }}
+                        </td>
+                        <td style="padding: 0.85rem 0.5rem;">
+                            <span style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; padding: 0.2rem 0.5rem; border-radius: 4px; background-color: {% if m.role == 'owner' %}#fef3c7; color: #92400e;{% else %}#f1f5f9; color: #475569;{% endif %}">
+                                {{ m.role }}
+                            </span>
+                        </td>
+                        <td style="padding: 0.85rem 0.5rem; color: var(--text-muted); font-size: 0.85rem;">
+                            {{ m.joined_at.strftime('%d/%m/%Y %H:%M') if m.joined_at else 'N/A' }}
+                        </td>
+                        {% if membership.role == 'owner' %}
+                        <td style="padding: 0.85rem 0.5rem; text-align: right;">
+                            {% if m.user.id != current_user.id %}
+                                {% if m.role == 'member' %}
+                                <form method="POST" action="{{ url_for('group.change_role', group_id=group.id, user_id=m.user.id) }}" style="display: inline;">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                    <input type="hidden" name="role" value="admin"/>
+                                    <button type="submit" class="btn btn-secondary btn-sm" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">
+                                        Promuovi Admin
+                                    </button>
+                                </form>
+                                {% elif m.role == 'admin' %}
+                                <form method="POST" action="{{ url_for('group.change_role', group_id=group.id, user_id=m.user.id) }}" style="display: inline;">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                    <input type="hidden" name="role" value="member"/>
+                                    <button type="submit" class="btn btn-secondary btn-sm" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">
+                                        Rimuovi Admin
+                                    </button>
+                                </form>
+                                {% endif %}
+                            {% endif %}
+                        </td>
+                        {% endif %}
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function copyToClipboard(text, buttonElement) {
+        if (!navigator.clipboard) {
+            alert("Clipboard non supportata");
+            return;
+        }
+        navigator.clipboard.writeText(text).then(function() {
+            const originalText = buttonElement.innerHTML;
+            buttonElement.innerHTML = '✅ Copiato!';
+            buttonElement.style.borderColor = 'var(--success)';
+            buttonElement.style.color = 'var(--success)';
+            setTimeout(function() {
+                buttonElement.innerHTML = originalText;
+                buttonElement.style.borderColor = '';
+                buttonElement.style.color = '';
+            }, 2000);
+        }).catch(function(err) {
+            console.error('Errore durante la copia:', err);
+        });
+    }
+</script>
+{% endblock %}

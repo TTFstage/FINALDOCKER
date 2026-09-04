@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Web App{% endblock %}</title>
+    <style>
+        /* CSS rimosso come richiesto per mantenere l'interfaccia estremamente semplice */
+    </style>
+</head>
+<body>
+    <header class="navbar">
+        <a href="{{ url_for('core.index') }}" class="navbar-brand">
+            🚀 Web App
+        </a>
+        <ul class="nav-links">
+            <li><a href="{{ url_for('core.index') }}">Home</a></li>
+            {% if current_user and current_user.is_authenticated %}
+                <li><a href="{{ url_for('group.index') }}">I Miei Gruppi</a></li>
+                <li><a href="{{ url_for('group.create') }}">+ Crea Gruppo</a></li>
+                <li><a href="{{ url_for('group.join') }}">Entra con Codice</a></li>
+                <li><a href="{{ url_for('auth.me') }}">Profilo</a></li>
+                <li>
+                    <form method="POST" action="{{ url_for('security.logout') }}" style="display: inline;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <button type="submit" class="btn-logout">Logout</button>
+                    </form>
+                </li>
+            {% else %}
+                <li><a href="{{ url_for('security.login') }}">Accedi</a></li>
+                <li><a href="{{ url_for('security.register') }}">Registrati</a></li>
+            {% endif %}
+        </ul>
+    </header>
+
+    <main class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="alert-box">
+                    {% for category, message in messages %}
+                        <div class="alert {% if category == 'error' %}alert-error{% elif category == 'success' %}alert-success{% else %}alert-info{% endif %}">
+                            <span>{{ message }}</span>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

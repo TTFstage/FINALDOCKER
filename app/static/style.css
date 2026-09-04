@@ -1,0 +1,98 @@
+body {
+    font-family: system-ui, -apple-system, sans-serif;
+    text-align: center;
+    padding-top: 20px;
+    background-color: #f4f6f8;
+    color: #333;
+    margin: 0;
+}
+.card {
+    background: white;
+    max-width: 400px;
+    margin: 20px auto;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+.btn {
+    padding: 15px 30px;
+    font-size: 18px;
+    font-weight: bold;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    margin: 10px 5px;
+    width: 80%;
+    transition: background-color 0.2s;
+}
+#btn-start { background-color: #2e7d32; }
+#btn-start:hover { background-color: #1b5e20; }
+#btn-stop { background-color: #c62828; display: none; }
+#btn-stop:hover { background-color: #b71c1c; }
+#status {
+    font-size: 14px;
+    margin-top: 15px;
+    padding: 10px;
+    border-radius: 6px;
+    background-color: #e0e0e0;
+}
+
+/* OVERLAY COUNTDOWN INCIDENTE */
+#crash-alert {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background-color: rgba(215, 38, 56, 0.98);
+    color: white;
+    z-index: 9999;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    box-sizing: border-box;
+}
+#crash-alert h1 { font-size: 28px; margin-bottom: 10px; }
+#timer-display { font-size: 64px; font-weight: bold; margin: 15px 0; }
+.btn-cancel {
+    background-color: white;
+    color: #d72638;
+    border: none;
+    padding: 20px 40px;
+    font-size: 20px;
+    font-weight: bold;
+    border-radius: 10px;
+    cursor: pointer;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+/* FORM DI LOGIN / REGISTRAZIONE */
+.form-input {
+    width: 80%;
+    padding: 12px;
+    margin: 8px 0;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    box-sizing: border-box;
+}
+.form-error {
+    color: #c62828;
+    font-size: 14px;
+    margin: 8px 0;
+}
+.form-link {
+    display: block;
+    margin-top: 15px;
+    font-size: 14px;
+    color: #555;
+}
+.btn-logout {
+    background: none;
+    border: none;
+    color: #555;
+    font-size: 13px;
+    text-decoration: underline;
+    cursor: pointer;
+    margin-top: 10px;
+}
