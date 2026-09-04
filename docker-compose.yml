@@ -39,6 +39,8 @@ services:
       DATABASE_URL: postgresql+psycopg://${DB_USER:-postgres}:${DB_PASSWORD:-password}@db:5432/${DB_NAME:-testlogin}
     depends_on:
       - db
+    volumes:
+      - gpx_storage:/data/volume_gpx_storage:ro
     expose:
       - "8000"
 
@@ -87,8 +89,10 @@ services:
     restart: always
     ports:
       - "80:80"
+      - "443:443" # Porta HTTPS
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
     depends_on:
       - web
       - fastapi

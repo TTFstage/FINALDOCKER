@@ -42,7 +42,7 @@ def save_shift_metadata(session_id: str, rider_id: str, gpx_path: str, distance_
             with conn.cursor() as cur:
                 cur.execute(
                     """
-                    INSERT INTO rider_shifts (session_id, rider_id, gpx_path, total_distance_km, duration_min)
+                    INSERT INTO rider_shifts (session_id, user_id, gpx_path, total_distance_km, duration_min)
                     VALUES (%s, %s, %s, %s, %s)
                     """,
                     (session_id, rider_id, gpx_path, distance_km, duration_min),

@@ -198,10 +198,16 @@ function setSamplingRate(ms, force = false) {
 async function startTracking() {
     isTracking = true;
     sosLock = false;
-    sessionId = crypto.randomUUID();
+    // Fallback per HTTP locale: crypto.randomUUID() esiste solo su HTTPS
+    sessionId = (crypto && crypto.randomUUID) ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        var r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    });
     fallDetector.is_cancelled_fall = false;
     document.getElementById('btn-start').style.display = "none";
+    document.getElementById('btn-start').disabled = true;
     document.getElementById('btn-stop').style.display = "inline-block";
+    document.getElementById('btn-stop').disabled = false;
     setSamplingRate(50, true);
     t0 = Date.now();
 
@@ -284,7 +290,9 @@ function stopTracking() {
     
     // Ripristina l'interfaccia grafica iniziale
     document.getElementById('btn-stop').style.display = "none";
+    document.getElementById('btn-stop').disabled = true;
     document.getElementById('btn-start').style.display = "inline-block";
+    document.getElementById('btn-start').disabled = false;
     document.getElementById('status').innerText = "Stato: Tracciamento fermato.";
     document.getElementById('status').style.backgroundColor = "#e0e0e0";
 }

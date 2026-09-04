@@ -44,11 +44,20 @@ class GPXStreamManager:
         self,
         session_id: str,
         rider_id: str,
-        lat: float,
-        lon: float,
+        lat: float | None,
+        lon: float | None,
         elev: float | None,
         timestamp: float,
     ) -> None:
+        # Scarta i punti senza fix GPS valida (lat/lon nulli, es. primi campioni
+        # prima che watchPosition restituisca la prima posizione): un valore
+        # None scritto su disco romperebbe il parsing in _read_points.
+        if lat is None or lon is None:
+            logger.debug(
+                "Punto scartato per coordinate mancanti (rider=%s session=%s)", rider_id, session_id
+            )
+            return
+
         key = (rider_id, session_id)
         buffer = self._buffers.setdefault(key, [])
         buffer.append((lat, lon, elev, timestamp))
@@ -70,9 +79,19 @@ class GPXStreamManager:
         if not os.path.exists(tmp_path):
             return points
         with open(tmp_path, "r", encoding="utf-8") as fh:
-            for line in fh:
-                lat_s, lon_s, elev_s, ts_s = line.strip().split(",")
-                points.append((float(lat_s), float(lon_s), float(elev_s) if elev_s else None, float(ts_s)))
+            for line_no, line in enumerate(fh, start=1):
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    lat_s, lon_s, elev_s, ts_s = line.split(",")
+                    points.append((float(lat_s), float(lon_s), float(elev_s) if elev_s else None, float(ts_s)))
+                except ValueError:
+                    # Riga corrotta (es. valori 'None' scritti da versioni precedenti
+                    # del worker): la scartiamo invece di far fallire l'intera sessione.
+                    logger.warning(
+                        "Riga %d non valida in %s, scartata: %r", line_no, tmp_path, line
+                    )
         return points
 
     def close_session(
