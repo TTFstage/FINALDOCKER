@@ -1,51 +1,21 @@
 {% extends "base.html" %}
 
-{% block title %}Entra in un Gruppo - Web App{% endblock %}
+{% block title %}Entra nel Gruppo{% endblock %}
 
 {% block content %}
-<div style="max-width: 520px; margin: 0 auto;">
-    <div style="margin-bottom: 1.5rem;">
-        <a href="{{ url_for('group.index') }}" style="color: var(--text-muted); text-decoration: none; font-size: 0.9rem;">
-            ← Torna ai miei gruppi
-        </a>
-        <h1 style="font-size: 1.75rem; font-weight: 700; color: var(--text-main); margin-top: 0.5rem;">Entra con Codice</h1>
-        <p style="color: var(--text-muted); font-size: 0.95rem;">
-            Inserisci il codice univoco del gruppo ricevuto dal proprietario o da un membro.
+    <h1>Entra con Codice</h1>
+    <p><a href="{{ url_for('group.index') }}">← Annulla</a></p>
+    <hr>
+
+    <form method="POST" action="">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        
+        <p>
+            <label>Codice Gruppo:</label><br>
+            <input type="text" name="code" value="{{ form.code.data or '' }}" required autofocus>
+            {% if form.code.errors %}<br><span style="color: red;">{% for e in form.code.errors %}{{ e }}{% endfor %}</span>{% endif %}
         </p>
-    </div>
-
-    <div class="card">
-        <form method="POST" action="{{ url_for('group.join') }}">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-
-            <div class="form-group">
-                <label for="code" class="form-label">Codice Gruppo</label>
-                <input 
-                    type="text" 
-                    id="code" 
-                    name="code" 
-                    class="form-control" 
-                    placeholder="es. abc-defg-hij" 
-                    value="{{ entered_code|default('') }}" 
-                    style="font-family: 'JetBrains Mono', monospace; font-size: 1.15rem; letter-spacing: 0.05em; text-align: center; text-transform: lowercase;"
-                    required 
-                    autofocus
-                    autocomplete="off"
-                >
-                <small style="display: block; margin-top: 0.4rem; color: var(--text-muted); font-size: 0.8rem;">
-                    💡 Puoi digitare il codice con o senza trattini (es. <code>abc-defg-hij</code> oppure <code>abcdefghij</code>).
-                </small>
-            </div>
-
-            <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1.5rem;">
-                <a href="{{ url_for('group.index') }}" class="btn btn-secondary">
-                    Annulla
-                </a>
-                <button type="submit" class="btn btn-primary">
-                    Partecipa al Gruppo
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
+        
+        <button type="submit">Partecipa</button>
+    </form>
 {% endblock %}

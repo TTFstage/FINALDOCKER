@@ -1,9 +1,20 @@
-from flask import flash, redirect, render_template, request, url_for
+from flask import flash, redirect, render_template, url_for
 from flask_security import auth_required, current_user
 
 from app.auth.models import Group, GroupMembership
 from app.group import group_bp
+from app.group.forms import (
+    ChangeRoleForm,
+    CreateGroupForm,
+    JoinByTokenForm,
+    JoinGroupForm,
+)
 from extensions import db
+
+
+def normalize_code(code: str) -> str:
+    """Normalizza un codice gruppo rimuovendo spazi e trattini."""
+    return code.replace('-', '').replace(' ', '').lower()
 
 
 @group_bp.route('/', methods=['GET'])
@@ -23,22 +34,17 @@ def index():
 @auth_required()
 def create():
     """Creazione di un nuovo gruppo."""
-    if request.method == 'POST':
-        name = request.form.get('name', '').strip()
-        description = request.form.get('description', '').strip()
+    form = CreateGroupForm()
 
-        if not name:
-            flash("Il nome del gruppo è obbligatorio.", "error")
-            return render_template('group/create.html', name=name, description=description)
-
+    if form.validate_on_submit():
         # Genera un codice univoco (xxx-yyyy-zzz)
         code = Group.generate_group_code()
         while Group.query.filter_by(code=code).first() is not None:
             code = Group.generate_group_code()
 
         new_group = Group(
-            name=name,
-            description=description or None,
+            name=form.name.data.strip(),
+            description=form.description.data.strip() or None,
             code=code
         )
         # Genera il token di sicurezza iniziale per i link d'invito
@@ -59,7 +65,13 @@ def create():
         flash(f"Gruppo '{new_group.name}' creato con successo!", "success")
         return redirect(url_for('group.detail', group_id=new_group.id))
 
-    return render_template('group/create.html')
+    # GET request o validazione fallita
+    return render_template(
+        'group/create.html',
+        form=form,
+        name=form.name.data or '',
+        description=form.description.data or ''
+    )
 
 
 @group_bp.route('/<int:group_id>', methods=['GET'])
@@ -187,15 +199,15 @@ def change_role(group_id, user_id):
         user_id=user_id, group_id=group.id
     ).first_or_404()
 
-    new_role = request.form.get('role')
-    if new_role not in ['admin', 'member']:
+    form = ChangeRoleForm()
+
+    if form.validate_on_submit():
+        target_membership.role = form.role.data
+        db.session.commit()
+        flash(f"Ruolo di {target_membership.user.username} aggiornato a {form.role.data}.", "success")
+    else:
         flash("Ruolo non valido.", "error")
-        return redirect(url_for('group.detail', group_id=group.id))
 
-    target_membership.role = new_role
-    db.session.commit()
-
-    flash(f"Ruolo di {target_membership.user.username} aggiornato a {new_role}.", "success")
     return redirect(url_for('group.detail', group_id=group.id))
 
 
@@ -203,22 +215,20 @@ def change_role(group_id, user_id):
 @auth_required()
 def join():
     """Inserimento manuale del codice univoco (es. abc-defg-hij)."""
-    if request.method == 'POST':
-        raw_code = request.form.get('code', '').strip()
-        if not raw_code:
-            flash("Inserisci un codice di gruppo valido.", "error")
-            return render_template('group/join.html')
+    form = JoinGroupForm()
 
-        normalized_code = Group.normalize_code(raw_code)
+    if form.validate_on_submit():
+        normalized_code = normalize_code(form.code.data)
 
-        # Cerca per codice formattato o codice originale minuscolo
+        # Cerca per codice normalizzato
         group = Group.query.filter(
-            (Group.code == normalized_code) | (Group.code == raw_code.lower())
+            (Group.code == normalized_code) | 
+            (Group.code == form.code.data.lower())
         ).first()
 
         if not group:
             flash("Nessun gruppo trovato con il codice specificato. Verifica e riprova.", "error")
-            return render_template('group/join.html', entered_code=raw_code)
+            return render_template('group/join.html', form=form, entered_code=form.code.data)
 
         existing_membership = GroupMembership.query.filter_by(
             user_id=current_user.id, group_id=group.id
@@ -239,7 +249,8 @@ def join():
         flash(f"Ti sei unito con successo al gruppo '{group.name}'!", "success")
         return redirect(url_for('group.detail', group_id=group.id))
 
-    return render_template('group/join.html')
+    # GET request o validazione fallita
+    return render_template('group/join.html', form=form, entered_code=form.code.data if form.code.data else '')
 
 
 @group_bp.route('/join/<string:token>', methods=['GET', 'POST'])
@@ -260,7 +271,9 @@ def join_by_token(token):
         flash(f"Fai già parte del gruppo '{group.name}'.", "info")
         return redirect(url_for('group.detail', group_id=group.id))
 
-    if request.method == 'POST':
+    form = JoinByTokenForm()
+
+    if form.validate_on_submit():
         new_membership = GroupMembership(
             user_id=current_user.id,
             group_id=group.id,
@@ -272,4 +285,4 @@ def join_by_token(token):
         flash(f"Ti sei unito con successo al gruppo '{group.name}'!", "success")
         return redirect(url_for('group.detail', group_id=group.id))
 
-    return render_template('group/join_invite.html', group=group, token=token)
+    return render_template('group/join_invite.html', group=group, token=token, form=form)

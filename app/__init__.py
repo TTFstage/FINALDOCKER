@@ -24,7 +24,7 @@ def create_app(config_class=Config):
     from app.core.routes import core_bp
     from app.group import group_bp
     app.register_blueprint(core_bp)
-    app.register_blueprint(auth_bp)
+    app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(group_bp)
 
     return app

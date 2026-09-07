@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}Contatti SOS{% endblock %}
+
+{% block content %}
+    <h1>Contatti SOS</h1>
+    <p><a href="{{ url_for('auth.add_sos_contact') }}">+ Aggiungi nuovo contatto</a> | <a href="{{ url_for('auth.me') }}">← Profilo</a></p>
+    <hr>
+
+    {% if contacts %}
+    <table border="1" cellpadding="5">
+        <tr>
+            <th>Nome</th>
+            <th>Telefono</th>
+            <th>Relazione</th>
+            <th>Priorità</th>
+            <th>Azioni</th>
+        </tr>
+        {% for contact in contacts %}
+        <tr>
+            <td>{{ contact.name }}</td>
+            <td>{{ contact.phone }}</td>
+            <td>{{ contact.relationship or '-' }}</td>
+            <td>{{ contact.priority }}</td>
+            <td>
+                <a href="{{ url_for('auth.edit_sos_contact', contact_id=contact.id) }}">Modifica</a>
+                <form method="POST" action="{{ url_for('auth.delete_sos_contact', contact_id=contact.id) }}" style="display: inline;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <button type="submit">Elimina</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% else %}
+    <p>Nessun contatto SOS.</p>
+    {% endif %}
+{% endblock %}

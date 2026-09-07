@@ -161,7 +161,21 @@ L'applicazione è interamente containerizzata e richiede solo Docker per essere 
    ```
 4. **Verifica l'avvio:**
    L'applicazione avvierà automaticamente il database, eseguirà le migrazioni in sospeso e avvierà Nginx.
-   Puoi visitare l'app all'indirizzo: `http://localhost:8080`
+   
+   ### 🌐 Indirizzi di Accesso
+   
+   | Servizio | URL | Descrizione |
+   |----------|-----|-------------|
+   | **Applicazione Web** | `https://localhost` | Applicazione Flask (login, gruppi, profilo) |
+   | **Login** | `https://localhost/login` | Pagina di accesso |
+   | **Registrazione** | `https://localhost/register` | Creazione nuovo account |
+   | **Profilo** | `https://localhost/auth/me` | Area personale utente |
+   | **Gruppi** | `https://localhost/groups` | Gestione gruppi |
+   | **Contatti SOS** | `https://localhost/auth/sos/contacts` | Lista contatti SOS |
+   | **Aggiungi SOS** | `https://localhost/auth/sos/contacts/add` | Aggiungi nuovo contatto |
+   | **API Telemetria** | `https://localhost/stream` | Endpoint FastAPI per GPS |
+   
+   > ⚠️ **Nota:** L'accesso HTTP su `http://localhost` reindirizza automaticamente a HTTPS.
 
 ### Visualizzazione dei log
 

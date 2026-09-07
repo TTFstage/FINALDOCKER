@@ -112,5 +112,31 @@ class FallEvent(db.Model):
     
     user = db.relationship('User', backref=db.backref('fall_events', lazy=True))
 
+
+class SOSContact(db.Model):
+    """Contatti di emergenza per le notifiche SOS."""
+    __tablename__ = 'sos_contacts'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    name = db.Column(db.String(100), nullable=False)
+    phone = db.Column(db.String(20), nullable=False)
+    relationship = db.Column(db.String(50), nullable=True)  # es: "Coniuge", "Fratello", "Amico"
+    priority = db.Column(db.Integer, default=0, nullable=False)  # Ordine di priorità
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    
+    user = db.relationship('User', backref=db.backref('sos_contacts', lazy=True, cascade='all, delete-orphan'))
+
+    @validates('name')
+    def validate_name(self, key, value):
+        if value:
+            return value.strip()
+        return value
+
+    @validates('phone')
+    def validate_phone(self, key, value):
+        if value:
+            return re.sub(r'[^\d+\-\s\(\)]', '', value)  # Mantieni solo numeri e caratteri telefonici validi
+        return value
+
 # We initialize the user_datastore here, but we will pass it to security.init_app in the factory
 user_datastore = SQLAlchemyUserDatastore(db, User, Role)
