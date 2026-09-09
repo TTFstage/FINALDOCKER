@@ -21,7 +21,7 @@ app = FastAPI(title="Sensor Ingest API")
 
 class TelemetryPoint(BaseModel):
     """Unico payload accettato dal client: nessun dato grezzo dei sensori viene inoltrato al server."""
-    rider_id: str
+    user_id: str
     session_id: str
     lat: float | None = None
     lon: float | None = None
@@ -30,22 +30,22 @@ class TelemetryPoint(BaseModel):
     is_confirmed_fall: bool = False
     is_cancelled_fall: bool = False
 
-    @field_validator("rider_id", mode="before")
+    @field_validator("user_id", mode="before")
     @classmethod
-    def _coerce_rider_id(cls, v):
+    def _coerce_user_id(cls, v):
         # Accetta sia stringa che numero: alcuni client (es. tojson su un int)
-        # possono inviare rider_id come JSON number invece che come stringa.
+        # possono inviare user_id come JSON number invece che come stringa.
         return str(v) if v is not None else v
 
 
 class SessionEnd(BaseModel):
     """Segnala la chiusura di un turno di tracciamento: fa scattare la chiusura del file GPX."""
-    rider_id: str
+    user_id: str
     session_id: str
 
-    @field_validator("rider_id", mode="before")
+    @field_validator("user_id", mode="before")
     @classmethod
-    def _coerce_rider_id(cls, v):
+    def _coerce_user_id(cls, v):
         return str(v) if v is not None else v
 
 

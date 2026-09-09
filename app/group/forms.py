@@ -1,4 +1,5 @@
-from wtforms import Form, StringField, SelectField, TextAreaField
+from flask_wtf import FlaskForm
+from wtforms import StringField, SelectField, TextAreaField
 from wtforms.validators import DataRequired, Length, Optional, Regexp, ValidationError
 
 
@@ -7,7 +8,7 @@ def normalize_code(code: str) -> str:
     return code.replace('-', '').replace(' ', '').lower()
 
 
-class CreateGroupForm(Form):
+class CreateGroupForm(FlaskForm):
     """Form per la creazione di un nuovo gruppo."""
     name = StringField(
         'Nome del Gruppo',
@@ -37,7 +38,7 @@ class CreateGroupForm(Form):
     )
 
 
-class JoinGroupForm(Form):
+class JoinGroupForm(FlaskForm):
     """Form per unirsi a un gruppo tramite codice."""
     code = StringField(
         'Codice Gruppo',
@@ -57,12 +58,12 @@ class JoinGroupForm(Form):
     )
 
 
-class JoinByTokenForm(Form):
+class JoinByTokenForm(FlaskForm):
     """Form per accettare un invito tramite link token. Non ha campi visibili."""
     pass
 
 
-class ChangeRoleForm(Form):
+class ChangeRoleForm(FlaskForm):
     """Form per cambiare il ruolo di un membro."""
     role = SelectField(
         'Nuovo Ruolo',

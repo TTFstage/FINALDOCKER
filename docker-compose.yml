@@ -25,6 +25,14 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    expose:
+      - "6379"
+
   web:
     build: .
     restart: always
@@ -37,8 +45,10 @@ services:
       SECRET_KEY: ${SECRET_KEY:-your_secret_key_here}
       SECURITY_PASSWORD_SALT: ${SECURITY_PASSWORD_SALT:-your_salt_here}
       DATABASE_URL: postgresql+psycopg://${DB_USER:-postgres}:${DB_PASSWORD:-password}@db:5432/${DB_NAME:-testlogin}
+      REDIS_HOST: redis
     depends_on:
       - db
+      - redis
     volumes:
       - gpx_storage:/data/volume_gpx_storage:ro
     expose:
@@ -76,12 +86,15 @@ services:
       OUTPUT_BASE_DIR: /data/volume_gpx_storage
       BUFFER_SIZE: ${GPX_BUFFER_SIZE:-50}
       RDP_EPSILON: ${GPX_RDP_EPSILON:-0.00004}
+      REDIS_HOST: redis
     volumes:
       - gpx_storage:/data/volume_gpx_storage
     depends_on:
       rabbitmq:
         condition: service_healthy
       db:
+        condition: service_started
+      redis:
         condition: service_started
 
   nginx:
@@ -101,3 +114,4 @@ volumes:
   postgres_data:
   rabbitmq_data:
   gpx_storage:
+  redis_data:

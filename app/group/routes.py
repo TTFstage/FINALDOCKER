@@ -1,4 +1,6 @@
-from flask import flash, redirect, render_template, url_for
+import json
+
+from flask import abort, flash, jsonify, redirect, render_template, url_for
 from flask_security import auth_required, current_user
 
 from app.auth.models import Group, GroupMembership
@@ -9,7 +11,7 @@ from app.group.forms import (
     JoinByTokenForm,
     JoinGroupForm,
 )
-from extensions import db
+from extensions import db, redis_client
 
 
 def normalize_code(code: str) -> str:
@@ -286,3 +288,24 @@ def join_by_token(token):
         return redirect(url_for('group.detail', group_id=group.id))
 
     return render_template('group/join_invite.html', group=group, token=token, form=form)
+
+
+@group_bp.route('/<int:group_id>/member/<int:user_id>/position', methods=['GET'])
+@auth_required()
+def member_position(group_id, user_id):
+    requester = GroupMembership.query.filter_by(
+        user_id=current_user.id, group_id=group_id
+    ).first()
+    target = GroupMembership.query.filter_by(
+        user_id=user_id, group_id=group_id
+    ).first()
+
+    if not requester or not target:
+        abort(403)
+
+    # user_id = user_id (soluzione 1): la chiave Redis coincide
+    data = redis_client.get(f"position:{user_id}")
+    if not data:
+        return jsonify({"available": False})
+
+    return jsonify({"available": True, **json.loads(data)})

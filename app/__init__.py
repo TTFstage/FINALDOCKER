@@ -11,6 +11,10 @@ def create_app(config_class=Config):
     # Inizializza le estensioni
     db.init_app(app)
     migrate.init_app(app, db)
+    from extensions import redis_client
+    redis_client.connection_pool.connection_kwargs.update(
+        host=app.config['REDIS_HOST'], port=app.config['REDIS_PORT']
+    )
     csrf.init_app(app)
     
     # Dobbiamo importare i datastore qui per evitare import circolari, ma i modelli vanno caricati.

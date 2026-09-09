@@ -6,10 +6,19 @@
     <h1>Benvenuto</h1>
     {% if current_user and current_user.is_authenticated %}
         <p>Ciao, {{ current_user.username }}!</p>
+        <button id="btn-start" onclick="startTracking();">Inizia Tracciamento GPS</button>
+        <button id="btn-stop" onclick="stopTracking();" style="display:none;">Ferma Tracciamento GPS</button>
+        <p id="status">Stato: Tracciamento fermato.</p>
         <p><a href="{{ url_for('auth.me') }}">Profilo</a></p>
         <p><a href="{{ url_for('auth.list_sos_contacts') }}">Contatti SOS</a></p>
         <p><a href="{{ url_for('group.index') }}">Gruppi</a></p>
     {% else %}
         <p><a href="{{ url_for('security.login') }}">Accedi</a> | <a href="{{ url_for('security.register') }}">Registrati</a></p>
     {% endif %}
+
+<script>window.RIDER_ID = {{ current_user.id if current_user.is_authenticated else 'null' }};</script>
+<script src="{{ url_for('static', filename='js/SignalProcessor.js') }}"></script>
+<script src="{{ url_for('static', filename='js/HeadingEstimator.js') }}"></script>
+<script src="{{ url_for('static', filename='js/FallDetector.js') }}"></script>
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
 {% endblock %}

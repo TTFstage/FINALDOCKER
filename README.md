@@ -1,5 +1,7 @@
 # Flask Security Testing
 
+> 📄 **Documentazione tecnica completa e professionale:** `DOCUMENTAZIONE_TECNICA.md` — include stack, architettura, flusso dati, sicurezza, Redis TTL e comandi operativi.
+
 Questo è un progetto completo che dimostra l'implementazione di un'applicazione web sicura e di una pipeline di ingestione dati ad alte prestazioni (microservizi).
 Il cuore dell'applicazione web utilizza **Flask** e `Flask-Security-Too` per gestire in modo robusto la registrazione, il login e la gestione degli utenti (incluso un sistema RBAC per gruppi), appoggiandosi a un database PostgreSQL tramite `Flask-SQLAlchemy`. L'applicazione adotta una **Modular Blueprint Architecture** per garantire manutenibilità.
 In parallelo, il progetto integra **FastAPI**, **RabbitMQ** e un **GPS Worker** per l'ingestione asincrona e l'elaborazione di dati telemetrici (es. tracciati GPS), dimostrando un'architettura ibrida e scalabile.
@@ -15,7 +17,7 @@ Il progetto affianca a un'applicazione Flask basata sul pattern **Application Fa
 ```text
 FlaskTesting/
 ├── .env                  # Variabili d'ambiente (non versionato in git)
-├── docker-compose.yml    # File di orchestrazione dei container (Web, FastAPI, Worker, RabbitMQ, Nginx, DB)
+├── docker-compose.yml    # File di orchestrazione dei container (Web, FastAPI, Worker, RabbitMQ, Redis, Nginx, DB)
 ├── Dockerfile            # Configurazione per la build del container Flask
 ├── entrypoint.sh         # Script di avvio per eseguire migrazioni e Gunicorn
 ├── nginx/                # Configurazione del reverse proxy Nginx
@@ -28,7 +30,7 @@ FlaskTesting/
 │   ├── __init__.py       # Factory Function: assembla l'app, le config e i blueprint
 │   ├── core/             # Blueprint: Modulo per le funzionalità pubbliche e generiche
 │   ├── auth/             # Blueprint: Modulo di dominio (Sicurezza e Account)
-│   ├── group/            # Blueprint: Modulo per la gestione dei gruppi e permessi (RBAC)
+│   ├── group/            # Blueprint: Modulo per la gestione dei gruppi, permessi (RBAC) e posizione GPS in tempo reale
 │   └── templates/        # Template Jinja2 organizzati per modulo
 ├── migrations/           # Autogenerato da Flask-Migrate (storico schema DB)
 ├── requirements.txt      # Dipendenze di produzione (Gunicorn, Flask, ecc.)
@@ -112,6 +114,7 @@ Tutto ciò che riguarda l'autenticazione si trova in `app/auth/`.
 - **Protezione CSRF:** Abilitata su tutti i form (incluso login/logout) tramite il token `{{ csrf_token() }}`.
 - **Hardening Cookie:** `HttpOnly` e `SameSite=Lax` per prevenire attacchi XSS e CSRF.
 - **DB e Migrazioni:** Utilizzo di `psycopg3` e `Flask-Migrate`.
+- **Redis:** Memoria per la posizione GPS in tempo reale (`position:{user_id}`, TTL 90s) tramite `redis_client` condiviso.
 
 ---
 
@@ -124,6 +127,16 @@ Il progetto include un sistema di gestione dei gruppi con controllo degli access
   - Gli `admin` (e l'`owner`) possono rigenerare i codici di accesso e revocare i link d'invito per prevenire accessi indesiderati.
   - I `member` hanno privilegi di sola lettura per i link di invito attivi.
 - **Sicurezza Inviti:** I link d'invito utilizzano token sicuri a 256 bit generati tramite `secrets` e possono essere invalidati istantaneamente.
+
+---
+
+## 📍 Posizione GPS in Tempo Reale (Gruppo)
+
+- **Ingestione:** Il client invia `user_id` nel campo `rider_id` del payload FastAPI (`TelemetryPoint`).
+- **Storage:** Il `gps_worker` scrive in Redis (`position:{user_id}`) con TTL 90s (`redis==5.2.1`).
+- **Autorizzazione:** La route Flask `/groups/<group_id>/member/<user_id>/position` verifica server-side che entrambi i membri facciano parte dello stesso `group_id`.
+- **Polling:** Il frontend (`group/detail.html`) interroga ogni 8s tramite `pollPositions()` e aggiorna il marker Leaflet (`updateMarker` / `hideMarker`).
+- **Memoria:** La chiave è un singolo record (ultimo punto GPS), non una lista; non cresce nel tempo.
 
 ---
 
@@ -173,6 +186,7 @@ L'applicazione è interamente containerizzata e richiede solo Docker per essere 
    | **Gruppi** | `https://localhost/groups` | Gestione gruppi |
    | **Contatti SOS** | `https://localhost/auth/sos/contacts` | Lista contatti SOS |
    | **Aggiungi SOS** | `https://localhost/auth/sos/contacts/add` | Aggiungi nuovo contatto |
+| **Posizione Membro** | `https://localhost/groups/{group_id}/member/{user_id}/position` | Posizione GPS in tempo reale (JSON) |
    | **API Telemetria** | `https://localhost/stream` | Endpoint FastAPI per GPS |
    
    > ⚠️ **Nota:** L'accesso HTTP su `http://localhost` reindirizza automaticamente a HTTPS.

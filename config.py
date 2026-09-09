@@ -16,6 +16,8 @@ class Config:
     DB_HOST = os.environ.get('DB_HOST', 'localhost')
     DB_PORT = os.environ.get('DB_PORT', '5432')
     DB_NAME = os.environ.get('DB_NAME', 'testlogin')
+    REDIS_HOST = os.environ.get('REDIS_HOST', 'localhost')
+    REDIS_PORT = int(os.environ.get('REDIS_PORT', 6379))
 
     # Recupero e costruzione sicura dell'URI SQLAlchemy usando psycopg (psycopg3)
     _raw_db_url = os.environ.get('DATABASE_URL')

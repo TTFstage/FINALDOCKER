@@ -27,6 +27,14 @@ OUTPUT_BASE_DIR = os.getenv("OUTPUT_BASE_DIR", "/data/volume_gpx_storage")
 BUFFER_SIZE = int(os.getenv("BUFFER_SIZE", "50"))
 RDP_EPSILON = float(os.getenv("RDP_EPSILON", "0.00004"))
 
+import redis
+
+REDIS_HOST = os.getenv("REDIS_HOST", "redis")
+REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
+POSITION_TTL = int(os.getenv("POSITION_TTL", "90"))
+
+redis_client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True)
+
 stream_mgr = GPXStreamManager(output_base_dir=OUTPUT_BASE_DIR, buffer_size=BUFFER_SIZE)
 
 
@@ -36,7 +44,7 @@ def get_db_conn():
     )
 
 
-def save_shift_metadata(session_id: str, rider_id: str, gpx_path: str, distance_km: float, duration_min: float) -> None:
+def save_shift_metadata(session_id: str, user_id: str, gpx_path: str, distance_km: float, duration_min: float) -> None:
     try:
         with get_db_conn() as conn:
             with conn.cursor() as cur:
@@ -45,18 +53,18 @@ def save_shift_metadata(session_id: str, rider_id: str, gpx_path: str, distance_
                     INSERT INTO rider_shifts (session_id, user_id, gpx_path, total_distance_km, duration_min)
                     VALUES (%s, %s, %s, %s, %s)
                     """,
-                    (session_id, rider_id, gpx_path, distance_km, duration_min),
+                    (session_id, user_id, gpx_path, distance_km, duration_min),
                 )
     except Exception:
-        logger.exception("Errore salvataggio metadati turno su Postgres (rider=%s session=%s)", rider_id, session_id)
+        logger.exception("Errore salvataggio metadati turno su Postgres (user=%s session=%s)", user_id, session_id)
 
 
-def save_fall_event(session_id: str, rider_id: str, lat: float | None, lon: float | None, timestamp_ms: float) -> None:
+def save_fall_event(session_id: str, user_id: str, lat: float | None, lon: float | None, timestamp_ms: float) -> None:
     """Persiste una caduta confermata su Postgres (tabella fall_events)."""
     if lat is None or lon is None:
         logger.warning(
-            "Caduta confermata senza coordinate GPS valide, non salvata (rider=%s session=%s)",
-            rider_id, session_id,
+            "Caduta confermata senza coordinate GPS valide, non salvata (user=%s session=%s)",
+            user_id, session_id,
         )
         return
     try:
@@ -67,10 +75,10 @@ def save_fall_event(session_id: str, rider_id: str, lat: float | None, lon: floa
                     INSERT INTO fall_events (session_id, user_id, latitude, longitude, "timestamp")
                     VALUES (%s, %s, %s, %s, to_timestamp(%s))
                     """,
-                    (session_id, rider_id, lat, lon, timestamp_ms / 1000.0),
+                    (session_id, user_id, lat, lon, timestamp_ms / 1000.0),
                 )
     except Exception:
-        logger.exception("Errore salvataggio caduta su Postgres (rider=%s session=%s)", rider_id, session_id)
+        logger.exception("Errore salvataggio caduta su Postgres (user=%s session=%s)", user_id, session_id)
 
 
 def on_message(channel, method, properties, body: bytes) -> None:
@@ -81,16 +89,28 @@ def on_message(channel, method, properties, body: bytes) -> None:
         if msg_type == "point":
             stream_mgr.add_point(
                 session_id=envelope["session_id"],
-                rider_id=envelope["rider_id"],
+                user_id=envelope["user_id"],
                 lat=envelope.get("lat"),
                 lon=envelope.get("lon"),
                 elev=None,
                 timestamp=envelope["timestamp"],
             )
+            if envelope.get("lat") is not None and envelope.get("lon") is not None:
+            # user_id coincide con user_id (soluzione 1)
+                redis_client.set(
+                    f"position:{envelope['user_id']}",
+                    json.dumps({
+                        "lat": envelope["lat"],
+                        "lon": envelope["lon"],
+                        "session_id": envelope["session_id"],
+                        "ts": envelope["timestamp"],
+                    }),
+                    ex=POSITION_TTL,
+                )
             if envelope.get("is_confirmed_fall"):
                 save_fall_event(
                     session_id=envelope["session_id"],
-                    rider_id=envelope["rider_id"],
+                    user_id=envelope["user_id"],
                     lat=envelope.get("lat"),
                     lon=envelope.get("lon"),
                     timestamp_ms=envelope["timestamp"],
@@ -98,13 +118,13 @@ def on_message(channel, method, properties, body: bytes) -> None:
         elif msg_type == "session_end":
             result = stream_mgr.close_session(
                 session_id=envelope["session_id"],
-                rider_id=envelope["rider_id"],
+                user_id=envelope["user_id"],
                 apply_rdp=True,
                 epsilon=RDP_EPSILON,
             )
             if result is not None:
                 final_path, distance_km, duration_min = result
-                save_shift_metadata(envelope["session_id"], envelope["rider_id"], final_path, distance_km, duration_min)
+                save_shift_metadata(envelope["session_id"], envelope["user_id"], final_path, distance_km, duration_min)
         else:
             logger.warning("Messaggio con type sconosciuto ignorato: %s", msg_type)
 
