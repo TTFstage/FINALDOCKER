@@ -27,8 +27,12 @@ def create_app(config_class=Config):
     from app.auth.routes import auth_bp
     from app.core.routes import core_bp
     from app.group import group_bp
+    from app.telemetry.routes import telemetry_bp
+    # Import telemetry models for migration detection
+    from app.telemetry import models
     app.register_blueprint(core_bp)
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(group_bp)
+    app.register_blueprint(telemetry_bp, url_prefix='/telemetry')
 
     return app

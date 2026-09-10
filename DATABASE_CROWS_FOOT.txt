@@ -1,0 +1,144 @@
+================================================================================
+  DATABASE SCHEMA — CROW'S FOOT NOTATION (ERD TESTUALE)
+  Progetto: Flask Testing / GPS Real-Time Pipeline
+  Stato: Produzione (Docker Compose, PostgreSQL 15-alpine)
+  Data: 2026-09-09
+================================================================================
+
+NOTAZIONE LEGENDA:
+  |  = UNO (1)              O  = ZERO (0) o UNO (0..1)
+  |---  = MOLTI (N)         O---  = ZERO (0) o MOLTI (0..N)
+  <PK>  = Primary Key      <FK>  = Foreign Key
+  <U>   = Unique Constraint
+
+================================================================================
+  TABELLE E ATTRIBUTI
+================================================================================
+
+[ENTITA: user]
+  <PK> id              INTEGER (auto-increment)
+      username         VARCHAR(255) <U>
+      email            VARCHAR(255) <U>
+      phone_number     VARCHAR(20) <U> (nullable)
+      password         VARCHAR(255) (not null)
+      active           BOOLEAN (default TRUE)
+      fs_uniquifier    VARCHAR(64) <U> (not null, default uuid4 hex)
+  RELAZIONI:
+    1 --- N  group_memberships  (via group_memberships.user_id -> user.id)
+    1 --- N  rider_shifts      (via rider_shifts.user_id -> user.id)
+    1 --- N  fall_events       (via fall_events.user_id -> user.id)
+    1 --- N  sos_contacts      (via sos_contacts.user_id -> user.id)
+    N --- M  role              (via roles_users.user_id / role_id)
+
+[ENTITA: role]
+  <PK> id              INTEGER (auto-increment)
+      name             VARCHAR(80) <U>
+      description      VARCHAR(255)
+  RELAZIONI:
+    1 --- N  user              (via roles_users.role_id -> role.id)
+
+[ENTITA: roles_users]  (tabella intermedia / association)
+  <FK> user_id         INTEGER (PK, FK -> user.id)
+  <FK> role_id         INTEGER (PK, FK -> role.id)
+  RELAZIONI:
+    N --- M  user              (user_id)
+    N --- M  role              (role_id)
+
+[ENTITA: groups]
+  <PK> id              INTEGER (auto-increment)
+      name             VARCHAR(100) (not null)
+      description      VARCHAR(255) (nullable)
+      code             VARCHAR(12) <U> (not null, indexed)
+      security_token   VARCHAR(64) <U> (nullable, indexed)
+      created_at       TIMESTAMP (default now, not null)
+  RELAZIONI:
+    1 --- N  group_memberships  (via group_memberships.group_id -> groups.id)
+
+[ENTITA: group_memberships]  (tabella intermedia / association RBAC)
+  <PK> user_id         INTEGER (PK, FK -> user.id)
+  <PK> group_id        INTEGER (PK, FK -> groups.id)
+      role             VARCHAR(20) (default 'member', not null)
+      joined_at        TIMESTAMP (default now, not null)
+  RELAZIONI:
+    N --- M  user              (user_id)
+    N --- M  groups            (group_id)
+
+[ENTITA: rider_shifts]  (metadati turno GPS)
+  <PK> id              INTEGER (auto-increment)
+  <FK> session_id      VARCHAR(255) (not null)
+  <FK> user_id         INTEGER (FK -> user.id, not null)
+      gpx_path        VARCHAR(512) (not null)
+      total_distance_km  FLOAT (nullable)
+      duration_min    FLOAT (nullable)
+      created_at      TIMESTAMP (default now, not null)
+  RELAZIONI:
+    N --- 1  user              (user_id)
+
+[ENTITA: fall_events]  (eventi caduta confermati)
+  <PK> id              INTEGER (auto-increment)
+  <FK> session_id      VARCHAR(255) (not null)
+  <FK> user_id         INTEGER (FK -> user.id, not null)
+      latitude        FLOAT (not null)
+      longitude       FLOAT (not null)
+      timestamp       TIMESTAMP (default now, not null)
+  RELAZIONI:
+    N --- 1  user              (user_id)
+
+[ENTITA: sos_contacts]  (contatti emergenza)
+  <PK> id              INTEGER (auto-increment)
+  <FK> user_id         INTEGER (FK -> user.id, not null)
+      name             VARCHAR(100) (not null)
+      phone            VARCHAR(20) (not null)
+      relationship     VARCHAR(50) (nullable)
+      priority         INTEGER (default 0, not null)
+      created_at      TIMESTAMP (default now, not null)
+  RELAZIONI:
+    N --- 1  user              (user_id)
+
+================================================================================
+  CARDINALITA' / RELAZIONI (CROW'S FOOT VISIVO)
+================================================================================
+
+user ||---O< group_memberships >O---|| groups
+      (1 user ha 0..N memberships)  (1 gruppo ha 0..N memberships)
+      PK: user.id                  PK: groups.id
+      FK: group_memberships.user_id -> user.id
+      FK: group_memberships.group_id -> groups.id
+      ATTRIBUTI ASSOCIAZIONE: role, joined_at
+
+user ||---O< roles_users >O---|| role
+      (1 user ha 0..N ruoli)    (1 ruolo assegnato a 0..N utenti)
+      PK: roles_users.user_id + role_id
+      FK: roles_users.user_id -> user.id
+      FK: roles_users.role_id -> role.id
+
+user ||---O< rider_shifts >O---|| (nessuna entita' aggiuntiva; relazione 1:N diretta)
+      (1 user ha 0..N shift)
+      FK: rider_shifts.user_id -> user.id
+
+user ||---O< fall_events >O---|| (nessuna entita' aggiuntiva; relazione 1:N diretta)
+      (1 user ha 0..N fall_events)
+      FK: fall_events.user_id -> user.id
+
+user ||---O< sos_contacts >O---|| (nessuna entita' aggiuntiva; relazione 1:N diretta)
+      (1 user ha 0..N sos_contacts)
+      FK: sos_contacts.user_id -> user.id
+
+================================================================================
+  NOTE TECNICHE (REDIS / FLASK / FASTAPI / WORKER)
+================================================================================
+
+- user.id (INTEGER, PK) coincide con user_id nel payload FastAPI (str coerente).
+- group_memberships.role determina RBAC (owner / admin / member).
+- rider_shifts.gpx_path punta al file .gpx generato dal worker (GPXStreamManager).
+- fall_events.timestamp usa to_timestamp(timestamp_ms / 1000.0) nel worker.
+- Nessun campo sensore grezzo (acc_x, gyro, heading) persiste nel DB: solo metadati turno ed eventi caduta.
+- Redis (redis_client, TTL 90s) memorizza solo position:{user_id} (ultimo punto GPS), non una tabella DB.
+
+================================================================================
+  FONTI SCHEMA
+================================================================================
+- app/auth/models.py (SQLAlchemy Models: User, Role, Group, GroupMembership, RiderShift, FallEvent, SOSContact)
+- migrations/versions/ (Alembic schema storico)
+- gps_worker/worker_consumer.py (query SQL inserite: INSERT INTO rider_shifts / fall_events)
+- docker-compose.yml (DB: postgres:15-alpine, service db)
