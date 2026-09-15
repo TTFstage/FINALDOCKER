@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Contribuisci - Fontanelle in Italia{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/map.css') }}" />
+{% endblock %}
+
+{% block content %}
+<section class="page">
+  <h1>Contribuisci a OpenStreetMap</h1>
+  <div id="osm-auth-status">Verifica login OSM in corso…</div>
+  <p>Clicca sulla mappa per posizionare il nuovo punto, scegli il tipo e invia.</p>
+
+  <form id="poi-form">
+    <label>
+      Tipo di punto:
+      <select name="type" id="poi-type">
+        <option value="fountain">Fontanella</option>
+        <option value="toilet">Bagno pubblico</option>
+        <option value="bicycle_parking">Parcheggio bici</option>
+        <option value="playground">Parco giochi</option>
+      </select>
+    </label>
+    <div id="mini-map" class="mini-map"></div>
+    <button type="submit" id="poi-submit" disabled>Invia a OpenStreetMap</button>
+  </form>
+  <div id="poi-result"></div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="{{ url_for('static', filename='js/contribute.js') }}"></script>
+{% endblock %}

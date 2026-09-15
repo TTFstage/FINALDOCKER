@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Fontanelle in Italia 🚰{% endblock %}
+{% block content %}
+<section class="hero" style="text-align: center; margin-top: 50px;">
+  <h1>Trova subito dove bere quando sei in bici! 🚲</h1>
+  <p>
+    Un'app per trovare fontanelle, case dell'acqua, bagni pubblici e
+    parcheggi bici vicino a te.
+  </p>
+  <a class="btn" href="{{ url_for('map_pages.app_map') }}" style="display: inline-block; padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px;">Apri la mappa</a>
+</section>
+{% endblock %}

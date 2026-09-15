@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block title %}Mappa - Fontanelle in Italia{% endblock %}
+
+{% block content %}
+<!-- Selettore overlay -->
+<div id="overlay-selector" class="overlay-selector" style="margin-bottom: 10px;">
+  <label><input type="checkbox" data-overlay="stations" checked /> Fontanelle</label>
+  <label><input type="checkbox" data-overlay="toilets" /> Bagni</label>
+  <label><input type="checkbox" data-overlay="bicycleParkings" /> Parcheggi bici</label>
+  <label><input type="checkbox" data-overlay="playgrounds" /> Parchi giochi</label>
+</div>
+
+<!-- Hint zoom -->
+<div id="zoom-hint" class="zoom-hint" hidden style="color: orange; font-weight: bold; margin-bottom: 10px;">
+  Aumenta lo zoom per vedere i punti in questa zona.
+</div>
+
+<!-- Navigatore -->
+<div id="nav-toggle-bar" style="margin-bottom: 10px;">
+  <button id="nav-toggle" aria-expanded="false" aria-controls="nav-panel">
+    🚴 Navigatore ciclabile
+  </button>
+</div>
+
+<div id="nav-panel" class="hidden" style="display: none; border: 1px solid #ccc; padding: 10px; margin-bottom: 10px;">
+  <div class="nav-section">
+    <strong>Tappe del percorso</strong>
+    <div id="wp-list"></div>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-row">
+      <input id="wp-search-input" type="text" placeholder="Cerca indirizzo o luogo…" autocomplete="off" />
+      <button id="wp-search-btn" title="Aggiungi indirizzo">➕</button>
+    </div>
+    <div class="nav-row nav-row-wrap">
+      <button id="use-location-btn" class="nav-btn-sec">📍 Usa posizione attuale</button>
+      <button id="map-click-add-btn" class="nav-btn-sec">🖱️ Seleziona punto su mappa</button>
+    </div>
+  </div>
+
+  <div class="nav-section">
+    <strong>Aggiungi al percorso</strong>
+    <div class="nav-row nav-row-wrap">
+      <button id="add-nearest-fountain-btn" class="nav-btn-sec" disabled>💧 Fontanella più vicina</button>
+      <button id="add-nearest-parking-btn" class="nav-btn-sec" disabled>🅿️ Parcheggio bici più vicino</button>
+    </div>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-row">
+      <button id="calc-route-btn" class="nav-btn-primary" disabled>🗺️ Calcola percorso</button>
+      <button id="clear-route-btn" class="nav-btn-danger">🗑️ Azzera</button>
+    </div>
+    <p id="nav-msg" class="nav-msg"></p>
+  </div>
+</div>
+
+<!-- Mappa -->
+<div id="map" style="height: 600px; width: 100%; border: 1px solid #ccc;"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+
+<script src="{{ url_for('static', filename='map/js/geohash.js') }}"></script>
+<script src="{{ url_for('static', filename='map/js/map.js') }}"></script>
+
+<script>
+    // Configura Leaflet per gestire il toggle del navigatore
+    document.getElementById('nav-toggle').addEventListener('click', function() {
+        const panel = document.getElementById('nav-panel');
+        const expanded = this.getAttribute('aria-expanded') === 'true';
+        this.setAttribute('aria-expanded', !expanded);
+        panel.style.display = expanded ? 'none' : 'block';
+    });
+
+    // Mostra la posizione dei membri del gruppo se group_id è fornito
+    {% if group_id and members %}
+        // Assicurati che map.js abbia inizializzato window.map e window.L
+        const groupId = {{ group_id }};
+        const members = [
+            {% for m in members %}
+            { id: {{ m.user_id }}, username: "{{ m.user.username }}" }{% if not loop.last %},{% endif %}
+            {% endfor %}
+        ];
+        
+        // Polling delle posizioni
+        const memberMarkers = {};
+        
+        function updateMemberPositions() {
+            if (!window.map) return; // Attendi che la mappa sia pronta
+            
+            members.forEach(member => {
+                fetch(`/groups/${groupId}/member/${member.id}/position`)
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.available && data.lat && data.lng) {
+                            if (!memberMarkers[member.id]) {
+                                memberMarkers[member.id] = L.marker([data.lat, data.lng], {
+                                    title: member.username
+                                }).bindPopup(`<b>${member.username}</b>`).addTo(window.map);
+                            } else {
+                                memberMarkers[member.id].setLatLng([data.lat, data.lng]);
+                            }
+                        } else if (memberMarkers[member.id]) {
+                            // Se la posizione non è più disponibile, potremmo rimuovere il marker
+                            // window.map.removeLayer(memberMarkers[member.id]);
+                            // delete memberMarkers[member.id];
+                        }
+                    })
+                    .catch(e => console.error("Errore fetch posizione:", e));
+            });
+        }
+        
+        // Aggiorna ogni 5 secondi
+        setInterval(updateMemberPositions, 5000);
+        // Prima chiamata dopo 1 secondo per dare tempo alla mappa di inizializzarsi
+        setTimeout(updateMemberPositions, 1000);
+    {% endif %}
+</script>
+{% endblock %}

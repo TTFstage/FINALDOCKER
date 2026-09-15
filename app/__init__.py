@@ -31,9 +31,23 @@ def create_app(config_class=Config):
     # Import telemetry models for migration detection
     from app.telemetry import models  # noqa: F401
     from app.telemetry.routes import telemetry_bp
+    
+    # Map feature
+    from app.map import models as map_models  # noqa: F401
+    from app.map.routes import pages_bp as map_pages_bp
+    from app.map.api import api_bp as map_api_bp
+    from app.map.osm_auth import osm_bp as map_osm_bp
+
     app.register_blueprint(core_bp)
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(group_bp)
     app.register_blueprint(telemetry_bp, url_prefix='/telemetry')
+    app.register_blueprint(map_pages_bp)
+    app.register_blueprint(map_api_bp)
+    app.register_blueprint(map_osm_bp)
+
+    # Escludi le route OSM API da CSRF dato che autenticano tramite token/cookie PKCE
+    csrf.exempt(map_osm_bp)
+
 
     return app
