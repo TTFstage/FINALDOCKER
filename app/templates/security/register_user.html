@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Registrazione</title>
+</head>
+<body>
+    <h2>Registrazione</h2>
+
+    <form method="POST" action="{{ url_for('security.register') }}">
+        {{ register_user_form.hidden_tag() }}
+
+        <label>Username:</label><br>
+        {{ register_user_form.username(size=30) }}
+        {% for error in register_user_form.username.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+        {% endfor %}
+        <br><br>
+        
+        <label>Email:</label><br>
+        {{ register_user_form.email(size=30) }}
+        {% for error in register_user_form.email.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+        {% endfor %}
+        <br><br>
+        
+        <label>Phone Number:</label><br>
+        {{ register_user_form.phone_number(size=30) }}
+        {% for error in register_user_form.phone_number.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+        {% endfor %}
+        <br><br>
+
+        <label>Password:</label><br>
+        {{ register_user_form.password(size=30) }}
+        {% for error in register_user_form.password.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+        {% endfor %}
+        <br><br>
+
+        <label>Ripeti Password:</label><br>
+        {{ register_user_form.password_confirm(size=30) }}
+        {% for error in register_user_form.password_confirm.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+        {% endfor %}
+        <br><br>
+
+        <button type="submit">Registrati</button>
+    </form>
+
+    <br>
+    <a href="{{ url_for('core.index') }}">Torna alla Home</a> |
+    <a href="{{ url_for('security.login') }}">Hai già un account? Accedi</a>
+</body>
+</html>

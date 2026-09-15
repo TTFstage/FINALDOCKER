@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}Entra nel Gruppo{% endblock %}
+
+{% block content %}
+    <h1>Entra con Codice</h1>
+    <p><a href="{{ url_for('group.index') }}">← Annulla</a></p>
+    <hr>
+
+    <form method="POST" action="">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        
+        <p>
+            <label>Codice Gruppo:</label><br>
+            <input type="text" name="code" value="{{ form.code.data or '' }}" required autofocus>
+            {% if form.code.errors %}<br><span style="color: red;">{% for e in form.code.errors %}{{ e }}{% endfor %}</span>{% endif %}
+        </p>
+        
+        <button type="submit">Partecipa</button>
+    </form>
+{% endblock %}

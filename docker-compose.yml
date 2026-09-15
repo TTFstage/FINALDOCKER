@@ -1,0 +1,138 @@
+services:
+    db:
+        image: postgres:15-alpine
+        restart: always
+        environment:
+            POSTGRES_USER: ${DB_USER:-postgres}
+            POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
+            POSTGRES_DB: ${DB_NAME:-testlogin}
+        # Rimuovi ports in produzione se non devi collegarti direttamente da DBeaver/PgAdmin locale
+        ports:
+            - "127.0.0.1:5432:5432" # Binding solo su localhost per sicurezza
+        volumes:
+            - postgres_data:/var/lib/postgresql/data
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-testlogin}"]
+            interval: 5s
+            timeout: 5s
+            retries: 5
+        networks:
+            - backend
+
+    rabbitmq:
+        image: rabbitmq:3.13-management
+        restart: unless-stopped
+        environment:
+            RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
+            RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-guest}
+        volumes:
+            - rabbitmq_data:/var/lib/rabbitmq
+        healthcheck:
+            test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+        networks:
+            - backend
+
+    redis:
+        image: redis:7-alpine
+        restart: unless-stopped
+        volumes:
+            - redis_data:/data
+        healthcheck:
+            test: ["CMD", "redis-cli", "ping"]
+            interval: 5s
+            timeout: 3s
+            retries: 5
+        networks:
+            - backend
+
+    web:
+        build: .
+        restart: always
+        env_file:
+            - .env
+        environment:
+            DB_HOST: db
+            DB_PORT: 5432
+            REDIS_HOST: redis
+            DATABASE_URL: postgresql+psycopg://${DB_USER:-postgres}:${DB_PASSWORD:-password}@db:5432/${DB_NAME:-testlogin}
+        depends_on:
+            db:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
+        volumes:
+            - gpx_storage:/data/volume_gpx_storage:ro
+        expose:
+            - "8000"
+        networks:
+            - frontend
+            - backend
+
+    fastapi:
+        build:
+            context: ./fastapi_app
+        restart: unless-stopped
+        env_file:
+            - .env
+        environment:
+            RABBITMQ_HOST: rabbitmq
+        depends_on:
+            rabbitmq:
+                condition: service_healthy
+        expose:
+            - "8000"
+        networks:
+            - frontend
+            - backend
+
+    gps_worker:
+        build:
+            context: ./gps_worker
+        restart: unless-stopped
+        env_file:
+            - .env
+        environment:
+            RABBITMQ_HOST: rabbitmq
+            DB_HOST: db
+            DB_PORT: 5432
+            OUTPUT_BASE_DIR: /data/volume_gpx_storage
+            REDIS_HOST: redis
+        volumes:
+            - gpx_storage:/data/volume_gpx_storage
+        depends_on:
+            rabbitmq:
+                condition: service_healthy
+            db:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
+        networks:
+            - backend
+
+    nginx:
+        image: nginx:alpine
+        restart: always
+        ports:
+            - "80:80"
+            - "443:443"
+        volumes:
+            - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+            - ./nginx/certs:/etc/nginx/certs:ro
+        depends_on:
+            - web
+            - fastapi
+        networks:
+            - frontend
+
+volumes:
+    postgres_data:
+    rabbitmq_data:
+    gpx_storage:
+    redis_data:
+
+networks:
+    frontend:
+    backend:
