@@ -11,11 +11,7 @@
       color: "#ea580c",
       label: "Parcheggio bici",
     },
-    playgrounds: {
-      url: "/api/v1/playgrounds",
-      color: "#9333ea",
-      label: "Parco giochi",
-    },
+
   };
 
   const map = L.map("map").setView([45.4642, 9.19], 13);
@@ -63,7 +59,7 @@
       let extra = "";
       if (type === "stations" && item.name) extra = `<br>${item.name}`;
       if (type === "toilets" && item.openingHours) extra = `<br>Orari: ${item.openingHours}`;
-      if (type === "playgrounds" && item.name) extra = `<br>${item.name}`;
+
       div.innerHTML = `<strong>${config2.label}</strong>${extra}
         <br><button class="popup-add-btn" style="margin-top:6px;padding:3px 8px;cursor:pointer;border:1px solid #2563eb;border-radius:4px;background:#eff6ff;color:#1d4ed8;font-size:0.8rem;">
           ➕ Aggiungi come tappa

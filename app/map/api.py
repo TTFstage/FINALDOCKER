@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request
 
-from app.map.models import BicycleParking, Playground, Station, Toilet
+from app.map.models import BicycleParking, Station, Toilet
 
 api_bp = Blueprint("map_api", __name__, url_prefix="/api/v1")
 
@@ -55,17 +55,6 @@ def get_bicycle_parkings():
         return jsonify({"error": "Failed to fetch bicycle parkings"}), 500
 
 
-@api_bp.get("/playgrounds")
-def get_playgrounds():
-    gh5_list, error = _geohash_list_or_400()
-    if error:
-        return error
-    try:
-        data = _find_by_geohashes(Playground, gh5_list)
-        return jsonify([p.to_dict() for p in data])
-    except Exception:
-        current_app_logger().exception("Error fetching playgrounds")
-        return jsonify({"error": "Failed to fetch playgrounds"}), 500
 
 
 def current_app_logger():

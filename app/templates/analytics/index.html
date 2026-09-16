@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% block title %}Analytics - I Miei Percorsi{% endblock %}
+
+{% block head %}
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+<!-- Map container style -->
+<style>
+    #map { height: 500px; width: 100%; border-radius: 8px; margin-top: 15px; }
+    .stats-panel {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 15px;
+        margin-top: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .stats-panel h4 { margin-top: 0; }
+    .stat-item {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 10px;
+        padding-bottom: 5px;
+        border-bottom: 1px solid #dee2e6;
+    }
+    .stat-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">Analytics - I Miei Percorsi</h2>
+    
+    <div class="row">
+        <div class="col-md-8">
+            <div class="form-group">
+                <label for="shiftSelect"><strong>Seleziona un turno (GPX):</strong></label>
+                <select id="shiftSelect" class="form-control">
+                    <option value="" disabled selected>-- Seleziona un percorso --</option>
+                    {% for shift in shifts %}
+                        <option value="{{ shift.id }}" 
+                                data-url="{{ url_for('core.download_gpx', shift_id=shift.id) }}"
+                                data-distance="{{ shift.total_distance_km | default('0', true) }}"
+                                data-duration="{{ shift.duration_min | default('0', true) }}"
+                                data-date="{{ shift.created_at.strftime('%Y-%m-%d %H:%M') }}">
+                            Turno del {{ shift.created_at.strftime('%Y-%m-%d %H:%M') }} (Distanza: {{ shift.total_distance_km | default('0', true) | round(2) }} km)
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div id="map"></div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="stats-panel" id="statsPanel" style="display: none;">
+                <h4>Statistiche Turno</h4>
+                <div class="stat-item">
+                    <span><strong>Data:</strong></span>
+                    <span id="statDate">-</span>
+                </div>
+                <div class="stat-item">
+                    <span><strong>Distanza (DB):</strong></span>
+                    <span id="statDistance">-</span>
+                </div>
+                <div class="stat-item">
+                    <span><strong>Durata (DB):</strong></span>
+                    <span id="statDuration">-</span>
+                </div>
+                <div class="stat-item">
+                    <span><strong>Velocità Media (DB):</strong></span>
+                    <span id="statSpeed">-</span>
+                </div>
+                <hr>
+                <h5 class="mt-3">Dati rilevati dal GPX:</h5>
+                <div class="stat-item">
+                    <span>Distanza:</span>
+                    <span id="gpxDistance">-</span>
+                </div>
+                <div class="stat-item">
+                    <span>Dislivello Positivo:</span>
+                    <span id="gpxElevationGain">-</span>
+                </div>
+                <div class="stat-item">
+                    <span>Dislivello Negativo:</span>
+                    <span id="gpxElevationLoss">-</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<!-- Leaflet-GPX Plugin -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-gpx/1.7.0/gpx.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var map = L.map('map').setView([41.9028, 12.4964], 6); // Default Italia
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    var currentGpxLayer = null;
+    var shiftSelect = document.getElementById('shiftSelect');
+    var statsPanel = document.getElementById('statsPanel');
+
+    shiftSelect.addEventListener('change', function() {
+        var selectedOption = this.options[this.selectedIndex];
+        var gpxUrl = selectedOption.getAttribute('data-url');
+        
+        if (!gpxUrl) return;
+
+        // Update DB Stats
+        var distanceKm = parseFloat(selectedOption.getAttribute('data-distance')) || 0;
+        var durationMin = parseFloat(selectedOption.getAttribute('data-duration')) || 0;
+        var dateStr = selectedOption.getAttribute('data-date');
+        var speed = durationMin > 0 ? (distanceKm / (durationMin / 60)).toFixed(2) : 0;
+
+        document.getElementById('statDate').innerText = dateStr;
+        document.getElementById('statDistance').innerText = distanceKm.toFixed(2) + ' km';
+        document.getElementById('statDuration').innerText = durationMin.toFixed(0) + ' min';
+        document.getElementById('statSpeed').innerText = speed + ' km/h';
+        statsPanel.style.display = 'block';
+
+        // Clear previous layer
+        if (currentGpxLayer) {
+            map.removeLayer(currentGpxLayer);
+        }
+
+        // Load GPX
+        currentGpxLayer = new L.GPX(gpxUrl, {
+            async: true,
+            marker_options: {
+                startIconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet-gpx/1.7.0/pin-icon-start.png',
+                endIconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet-gpx/1.7.0/pin-icon-end.png',
+                shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet-gpx/1.7.0/pin-shadow.png'
+            }
+        }).on('loaded', function(e) {
+            map.fitBounds(e.target.getBounds());
+            
+            // Update GPX Stats
+            document.getElementById('gpxDistance').innerText = (e.target.get_distance() / 1000).toFixed(2) + ' km';
+            document.getElementById('gpxElevationGain').innerText = e.target.get_elevation_gain().toFixed(0) + ' m';
+            document.getElementById('gpxElevationLoss').innerText = e.target.get_elevation_loss().toFixed(0) + ' m';
+        }).addTo(map);
+    });
+});
+</script>
+{% endblock %}

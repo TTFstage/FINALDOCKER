@@ -79,29 +79,3 @@ class BicycleParking(db.Model):
             "gh5": self.gh5,
         }
 
-
-class Playground(db.Model):
-    __tablename__ = "playgrounds"
-
-    id = db.Column(db.Integer, primary_key=True)
-    lat = db.Column(db.Float, nullable=False)
-    lng = db.Column(db.Float, nullable=False)
-    name = db.Column(db.String, nullable=True)
-    openingHours = db.Column(db.String, nullable=True)
-    indoor = db.Column(db.Boolean, nullable=True)
-    fee = db.Column(db.Boolean, nullable=True)
-    supervised = db.Column(db.Boolean, nullable=True)
-    gh5 = db.Column(db.String, index=True, nullable=False)
-
-    def to_dict(self):
-        return {
-            "id": self.id,
-            "lat": self.lat,
-            "lng": self.lng,
-            "name": self.name,
-            "openingHours": self.openingHours,
-            "indoor": self.indoor,
-            "fee": self.fee,
-            "supervised": self.supervised,
-            "gh5": self.gh5,
-        }

@@ -11,6 +11,8 @@
             | <a href="{{ url_for('auth.me') }}">Profilo</a>
             | <a href="{{ url_for('auth.list_sos_contacts') }}">SOS</a>
             | <a href="{{ url_for('group.index') }}">Gruppi</a>
+            | <a href="{{ url_for('map_pages.home') }}">Mappa</a>
+            | <a href="{{ url_for('analytics.index') }}">Analytics</a>
             | <form method="POST" action="{{ url_for('security.logout') }}" style="display: inline;">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <button type="submit">Logout</button>

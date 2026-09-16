@@ -61,13 +61,3 @@ class Config:
     # NOTA PER LA PRODUZIONE (quando si usa HTTPS):
     # SESSION_COOKIE_SECURE = True
     # REMEMBER_COOKIE_SECURE = True
-
-    # --- OSM OAuth2 CONFIGURATIONS ---
-    OSM_SERVER_URL = os.environ.get("OSM_SERVER_URL", "https://www.openstreetmap.org").rstrip("/")
-    OSM_CLIENT_ID = os.environ.get("OSM_CLIENT_ID")
-    OSM_CLIENT_SECRET = os.environ.get("OSM_CLIENT_SECRET")
-    APP_ORIGIN = os.environ.get("APP_ORIGIN", "http://127.0.0.1:5000").rstrip("/")
-
-    # Rate limit per le submission POI (finestra semplice in-memory, single-process)
-    POI_RATE_LIMIT = 6
-    POI_RATE_WINDOW_SECONDS = 60

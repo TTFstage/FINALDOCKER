@@ -8,7 +8,7 @@ services:
             POSTGRES_DB: ${DB_NAME:-testlogin}
         # Rimuovi ports in produzione se non devi collegarti direttamente da DBeaver/PgAdmin locale
         ports:
-            - "127.0.0.1:5432:5432" # Binding solo su localhost per sicurezza
+            - "127.0.0.1:5433:5432" # Binding solo su localhost per sicurezza
         volumes:
             - postgres_data:/var/lib/postgresql/data
         healthcheck:

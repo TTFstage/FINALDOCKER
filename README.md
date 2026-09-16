@@ -221,3 +221,11 @@ docker-compose down -v
 - `flask db upgrade`: Applica le migrazioni generate al database.
 - `flask db downgrade`: Annulla l'ultima migrazione.
 - `flask db current`: Visualizza la migrazione attuale.
+
+### Come popolare il database con i dati della mappa
+
+Per caricare i dati della mappa (fontanelle, bagni, parcheggi bici) nel database PostgreSQL a partire dai file CSV (nella cartella `data/`), esegui questo comando nel terminale mentre i container sono attivi:
+
+```bash
+docker-compose exec -e PYTHONPATH=/app web python scripts/import_map_data.py
+```
