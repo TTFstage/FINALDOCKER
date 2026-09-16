@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Other{% endblock %}
+
+{% block content %}
+<h1>Other</h1>
+<p>Seleziona una sezione:</p>
+<ul>
+    <li>
+        <a href="{{ url_for('auth.me') }}">Profilo</a>
+        — Dati account, logout, elimina account
+    </li>
+    <li>
+        <a href="{{ url_for('group.index') }}">Gruppi</a>
+        — I tuoi gruppi, crea o unisciti a un gruppo
+    </li>
+    <li>
+        <a href="{{ url_for('auth.list_sos_contacts') }}">Contatti SOS</a>
+        — Gestisci i tuoi contatti di emergenza (max 5)
+    </li>
+</ul>
+{% endblock %}

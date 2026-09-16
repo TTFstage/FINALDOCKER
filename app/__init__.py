@@ -48,4 +48,8 @@ def create_app(config_class=Config):
     app.register_blueprint(map_api_bp)
     app.register_blueprint(analytics_bp, url_prefix='/analytics')
 
+    # Other hub
+    from app.other import other_bp
+    app.register_blueprint(other_bp, url_prefix='/other')
+
     return app

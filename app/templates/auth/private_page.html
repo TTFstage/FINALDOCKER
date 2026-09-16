@@ -1,40 +1,27 @@
 {% extends "base.html" %}
-
 {% block title %}Profilo{% endblock %}
 
 {% block content %}
-    <h1>Profilo</h1>
-    <p><strong>Username:</strong> {{ username }}</p>
-    <p><strong>Email:</strong> {{ email }}</p>
-    <p><strong>Telefono:</strong> {{ phone_number if phone_number else 'Non impostato' }}</p>
-    <hr>
-    
-    <h2>Contatti SOS ({{ sos_contacts|length }}/5)</h2>
-    <p><a href="{{ url_for('auth.add_sos_contact') }}">+ Aggiungi contatto</a></p>
-    
-    {% if sos_contacts %}
-    <ul>
-        {% for contact in sos_contacts %}
-        <li>
-            {{ contact.name }} - {{ contact.phone }}
-            {% if contact.relationship %} ({{ contact.relationship }}){% endif %}
-            [Priorità: {{ contact.priority }}]
-            | <a href="{{ url_for('auth.edit_sos_contact', contact_id=contact.id) }}">Modifica</a>
-            | <form method="POST" action="{{ url_for('auth.delete_sos_contact', contact_id=contact.id) }}" style="display: inline;">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                <button type="submit">Elimina</button>
-            </form>
-        </li>
-        {% endfor %}
-    </ul>
-    {% else %}
-    <p>Nessun contatto SOS.</p>
-    {% endif %}
-    
-    <hr>
-    <form method="POST" action="{{ url_for('auth.delete_account') }}" onsubmit="return confirm('Sei sicuro di voler eliminare il tuo account?');">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-        <button type="submit">Elimina Account</button>
-    </form>
-    <p><a href="{{ url_for('core.index') }}">← Torna alla home</a></p>
+<h1>Profilo</h1>
+<p><strong>Username:</strong> {{ username }}</p>
+<p><strong>Email:</strong> {{ email }}</p>
+<p><strong>Telefono:</strong> {{ phone_number if phone_number else 'Non impostato' }}</p>
+
+<hr>
+
+<!-- LOGOUT -->
+<h2>Sessione</h2>
+<form method="POST" action="{{ url_for('security.logout') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+    <button type="submit">Logout</button>
+</form>
+
+<hr>
+
+<!-- ELIMINA ACCOUNT -->
+<h2>Zona Pericolosa</h2>
+<form method="POST" action="{{ url_for('auth.delete_account') }}" onsubmit="return confirm('Sei sicuro di voler eliminare il tuo account? Questa azione è irreversibile.');">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+    <button type="submit">Elimina Account</button>
+</form>
 {% endblock %}

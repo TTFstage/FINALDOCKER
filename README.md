@@ -28,10 +28,13 @@ FlaskTesting/
 ├── extensions.py         # Istanziazione globale delle estensioni (DB, Security, Migrate)
 ├── app/                  # Package principale dell'applicazione Flask
 │   ├── __init__.py       # Factory Function: assembla l'app, le config e i blueprint
-│   ├── core/             # Blueprint: Modulo per le funzionalità pubbliche e generiche
-│   ├── auth/             # Blueprint: Modulo di dominio (Sicurezza e Account)
-│   ├── group/            # Blueprint: Modulo per la gestione dei gruppi, permessi (RBAC) e posizione GPS in tempo reale
-│   └── templates/        # Template Jinja2 organizzati per modulo
+│   ├── core/             # Blueprint: Home (sessione GPS, crash-alert SOS)
+│   ├── auth/             # Blueprint: Autenticazione, Profilo, Contatti SOS (CRUD)
+│   ├── group/            # Blueprint: Gruppi, RBAC, posizione GPS in tempo reale
+│   ├── other/            # Blueprint: Hub navigazione (Profile | Groups | SOS Contacts)
+│   ├── map/              # Blueprint: Mappa Leaflet + navigatore ciclabile
+│   ├── analytics/        # Blueprint: Analytics percorsi GPX
+│   └── templates/        # Template Jinja2 organizzati per modulo (core/auth/group/other/map/analytics/security)
 ├── migrations/           # Autogenerato da Flask-Migrate (storico schema DB)
 ├── requirements.txt      # Dipendenze di produzione (Gunicorn, Flask, ecc.)
 ├── requirements-dev.txt  # Dipendenze di sviluppo (pytest, ruff, ecc.)
@@ -108,6 +111,37 @@ Tutto ciò che riguarda l'autenticazione si trova in `app/auth/`.
 
 ---
 
+## 🗺️ Struttura della Navigazione (Frontend)
+
+La navbar principale espone quattro voci:
+
+```
+Home | Map | Analytics | Other
+```
+
+| Voce | URL | Contenuto |
+|---|---|---|
+| **Home** | `/` | Sessione GPS (Start/Stop), overlay SOS automatico (FallDetector) |
+| **Map** | `/map/` | Mappa Leaflet con fontanelle, bagni, parcheggi bici e navigatore ciclabile |
+| **Analytics** | `/analytics/` | Visualizzazione percorsi GPX con statistiche (distanza, dislivello, durata) |
+| **Other** | `/other/` | Hub che raccoglie: **Profilo**, **Gruppi**, **Contatti SOS** |
+
+### Other → Profilo (`/auth/me`)
+- Dati account (username, email, telefono)
+- **Logout** (form POST con CSRF token)
+- **Elimina Account** (con conferma)
+
+### Other → Gruppi (`/groups/`)
+- Lista gruppi di appartenenza con ruolo
+- Crea gruppo / Entra con codice / Accetta invito via link token
+- Dettaglio gruppo: membri, gestione ruoli (RBAC), rigenerazione codice
+
+### Other → Contatti SOS (`/auth/sos/contacts`)
+- Lista contatti di emergenza (max 5) con nome, telefono, relazione e priorità
+- Aggiunta, modifica ed eliminazione contatti
+
+---
+
 ## 🔒 Funzionalità Principali (Security)
 
 - **Autenticazione Sicura:** Gestita da `Flask-Security-Too`.
@@ -180,13 +214,16 @@ L'applicazione è interamente containerizzata e richiede solo Docker per essere 
     ### 🌐 Indirizzi di Accesso
     | Servizio             | URL                                                             | Descrizione                                 |
     | -------------------- | --------------------------------------------------------------- | ------------------------------------------- |
-    | **Applicazione Web** | `https://localhost`                                             | Applicazione Flask (login, gruppi, profilo) |
+    | **Applicazione Web** | `https://localhost`                                             | Home: sessione GPS + overlay SOS            |
     | **Login**            | `https://localhost/login`                                       | Pagina di accesso                           |
     | **Registrazione**    | `https://localhost/register`                                    | Creazione nuovo account                     |
-    | **Profilo**          | `https://localhost/auth/me`                                     | Area personale utente                       |
-    | **Gruppi**           | `https://localhost/groups`                                      | Gestione gruppi                             |
-    | **Contatti SOS**     | `https://localhost/auth/sos/contacts`                           | Lista contatti SOS                          |
-    | **Aggiungi SOS**     | `https://localhost/auth/sos/contacts/add`                       | Aggiungi nuovo contatto                     |
+    | **Map**              | `https://localhost/map/`                                        | Mappa Leaflet + navigatore ciclabile        |
+    | **Analytics**        | `https://localhost/analytics/`                                  | Visualizzazione percorsi GPX                |
+    | **Other**            | `https://localhost/other/`                                      | Hub: Profilo, Gruppi, Contatti SOS          |
+    | **Profilo**          | `https://localhost/auth/me`                                     | Dati account, logout, elimina account       |
+    | **Gruppi**           | `https://localhost/groups/`                                     | Lista gruppi, crea, join                    |
+    | **Contatti SOS**     | `https://localhost/auth/sos/contacts`                           | Lista e gestione contatti SOS               |
+    | **Aggiungi SOS**     | `https://localhost/auth/sos/contacts/add`                       | Aggiungi nuovo contatto SOS                 |
     | **Posizione Membro** | `https://localhost/groups/{group_id}/member/{user_id}/position` | Posizione GPS in tempo reale (JSON)         |
     | **API Telemetria**   | `https://localhost/stream`                                      | Endpoint FastAPI per GPS                    |
     > ⚠️ **Nota:** L'accesso HTTP su `http://localhost` reindirizza automaticamente a HTTPS.

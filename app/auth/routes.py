@@ -11,20 +11,12 @@ auth_bp = Blueprint('auth', __name__)
 @auth_bp.get("/me")
 @auth_required()
 def me():
-    """Pagina del profilo utente con i contatti SOS."""
-    # Ottieni i contatti SOS ordinati per priorità
-    sos_contacts = (
-        SOSContact.query.filter_by(user_id=current_user.id)
-        .order_by(SOSContact.priority.desc(), SOSContact.created_at.asc())
-        .all()
-    )
-    
+    """Pagina del profilo utente: dati, logout e delete account."""
     return render_template(
         "auth/private_page.html",
         username=current_user.username,
         phone_number=current_user.phone_number,
         email=current_user.email,
-        sos_contacts=sos_contacts
     )
 
 

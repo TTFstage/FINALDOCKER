@@ -1,7 +1,7 @@
 # DOCUMENTAZIONE TECNICA — FLASK TESTING / GPS REAL-TIME PIPELINE
 
-**Versione documento:** 1.0.0  
-**Data:** 2025-09-09  
+**Versione documento:** 1.1.0  
+**Data:** 2026-09-16  
 **Autore / Manutentore:** Davide (Project Lead)  
 **Status:** Produzione / Docker Compose Orchestrated  
 
@@ -129,9 +129,42 @@ redis_client.connection_pool.connection_kwargs.update(
 
 | Blueprint | File rotte | URL prefix | Funzione chiave |
 |---|---|---|---|
-| `core` | `app/core/routes.py` | `/` | Homepage pubblica |
-| `auth` | `app/auth/routes.py` | `/auth` | Login, register, `/me`, SOS |
-| `group` | `app/group/routes.py` | `/groups` | Creazione, join, RBAC, **posizione GPS** |
+| `core` | `app/core/routes.py` | `/` | Home: sessione GPS, crash-alert SOS, download GPX |
+| `auth` | `app/auth/routes.py` | `/auth` | Login, register, `/me` (Profilo), SOS contacts CRUD |
+| `group` | `app/group/routes.py` | `/groups` | Creazione, join, RBAC, posizione GPS in tempo reale |
+| `other` | `app/other/routes.py` | `/other` | Hub navigazione (Profile \| Groups \| SOS Contacts) |
+| `map_pages` | `app/map/routes.py` | `/map` | Pagina mappa Leaflet con navigatore ciclabile |
+| `map_api` | `app/map/api.py` | *(vario)* | API dati mappa (fontanelle, bagni, parcheggi) |
+| `analytics` | `app/analytics/routes.py` | `/analytics` | Selezione GPX, mappa percorso, statistiche |
+| `telemetry` | `app/telemetry/routes.py` | `/telemetry` | Endpoint ricezione telemetria lato Flask |
+
+---
+
+### 4.6 FRONTEND — Struttura Navigazione
+
+Dopo la riorganizzazione frontend (v1.1.0), la navbar espone **quattro voci** fisse:
+
+```
+Home | Map | Analytics | Other
+```
+
+**`base.html`** (template padre di tutte le pagine) ora include:
+- `<link rel="stylesheet">` per `style.css` (corretto: era assente in v1.0)
+- `{% block head %}` per CSS extra per-pagina (Leaflet CSS in map/analytics)
+- `{% block scripts %}` per JS extra per-pagina (Leaflet JS in map/analytics)
+- Navbar con le 4 voci (visibile solo se autenticato per Map/Analytics/Other)
+
+**Gerarchia pagine:**
+
+| Voce | Blueprint | URL | Contenuto |
+|---|---|---|---|
+| **Home** | `core` | `/` | Sessione GPS (Start/Stop), overlay crash-alert SOS automatico |
+| **Map** | `map_pages` | `/map/` | Mappa Leaflet, overlay fontanelle/bagni/parcheggi, navigatore |
+| **Analytics** | `analytics` | `/analytics/` | Selezione turno GPX, mappa percorso, statistiche |
+| **Other** | `other` | `/other/` | Hub con 3 link: Profilo, Gruppi, Contatti SOS |
+| &nbsp;&nbsp;↳ Profilo | `auth` | `/auth/me` | Dati utente + Logout (POST CSRF) + Elimina Account |
+| &nbsp;&nbsp;↳ Gruppi | `group` | `/groups/` | Lista gruppi, RBAC, crea/join/dettaglio |
+| &nbsp;&nbsp;↳ Contatti SOS | `auth` | `/auth/sos/contacts` | CRUD contatti emergenza (max 5) |
 
 ---
 
@@ -370,9 +403,14 @@ docker-compose logs -f redis       # Redis
 
 | Risorsa | URL / Comando |
 |---|---|
-| Web App | `https://localhost` |
+| Web App (Home) | `https://localhost` |
 | Login | `https://localhost/login` |
-| Gruppi | `https://localhost/groups` |
+| Map | `https://localhost/map/` |
+| Analytics | `https://localhost/analytics/` |
+| Other (hub) | `https://localhost/other/` |
+| Profilo | `https://localhost/auth/me` |
+| Gruppi | `https://localhost/groups/` |
+| Contatti SOS | `https://localhost/auth/sos/contacts` |
 | API Stream | `POST https://localhost/stream` |
 | Posizione membro (JSON) | `GET https://localhost/groups/{group_id}/member/{user_id}/position` |
 | Redis CLI (docker) | `docker exec -it <redis_container> redis-cli -p 6379` |
@@ -395,6 +433,14 @@ docker-compose logs -f redis       # Redis
    - `gps_worker` dipende da `rabbitmq` (condition: `service_healthy`) e `db` / `redis` (`service_started`).
    - `fastapi` dipende da `rabbitmq` (`service_healthy`).
 
+5. **Frontend — Riorganizzazione v1.1.0**  
+   La struttura di navigazione è stata riscritta in v1.1.0. I punti chiave da non rompere durante future modifiche:
+   - **`base.html`** è l'unico punto dove la navbar viene definita. Modificarla solo qui.
+   - **`{% block head %}`** e **`{% block scripts %}`** sono necessari per il corretto caricamento di Leaflet nelle pagine Map e Analytics.
+   - **Il Logout** è in `auth/private_page.html` (form POST con CSRF), **non** nella navbar.
+   - **I contatti SOS** sono gestiti dal blueprint `auth` (URL `/auth/sos/...`) ma l'entry point UI è `/other/` → "Contatti SOS".
+   - **L'overlay crash-alert** (caduta rilevata) risiede nel template `core/index.html` ed è attivato da `main.js` / `FallDetector.js`.
+
 ---
 
-*Documento generato automaticamente in base al codice sorgente (`app/`, `fastapi_app/`, `gps_worker/`, `docker-compose.yml`, `extensions.py`, `config.py`). Ogni modifica al codice richiede l'aggiornamento del paragrafo corrispondente.*
+*Documento aggiornato alla versione 1.1.0 in base alla riorganizzazione frontend (rimozione SOS da Home, aggiunta blueprint `other`, nuova navbar 4 voci). Ogni modifica al codice richiede l'aggiornamento del paragrafo corrispondente.*
