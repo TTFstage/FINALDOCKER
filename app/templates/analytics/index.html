@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Analytics - I Miei Percorsi{% endblock %}
+{% block title %}Analytics - My Routes{% endblock %}
 
 {% block head %}
 <!-- Leaflet CSS -->
@@ -28,21 +28,21 @@
 
 {% block content %}
 <div class="container mt-4">
-    <h2 class="mb-4">Analytics - I Miei Percorsi</h2>
+    <h2 class="mb-4">Analytics - My Routes</h2>
     
     <div class="row">
         <div class="col-md-8">
             <div class="form-group">
-                <label for="shiftSelect"><strong>Seleziona un turno (GPX):</strong></label>
+                <label for="shiftSelect"><strong>Select a session (GPX):</strong></label>
                 <select id="shiftSelect" class="form-control">
-                    <option value="" disabled selected>-- Seleziona un percorso --</option>
+                    <option value="" disabled selected>-- Select a route --</option>
                     {% for shift in shifts %}
                         <option value="{{ shift.id }}" 
                                 data-url="{{ url_for('core.download_gpx', shift_id=shift.id) }}"
                                 data-distance="{{ shift.total_distance_km | default('0', true) }}"
                                 data-duration="{{ shift.duration_min | default('0', true) }}"
                                 data-date="{{ shift.created_at.strftime('%Y-%m-%d %H:%M') }}">
-                            Turno del {{ shift.created_at.strftime('%Y-%m-%d %H:%M') }} (Distanza: {{ shift.total_distance_km | default('0', true) | round(2) }} km)
+                            Session of {{ shift.created_at.strftime('%Y-%m-%d %H:%M') }} (Distance: {{ shift.total_distance_km | default('0', true) | round(2) }} km)
                         </option>
                     {% endfor %}
                 </select>
@@ -53,35 +53,35 @@
         
         <div class="col-md-4">
             <div class="stats-panel" id="statsPanel" style="display: none;">
-                <h4>Statistiche Turno</h4>
+                <h4>Session Statistics</h4>
                 <div class="stat-item">
-                    <span><strong>Data:</strong></span>
+                    <span><strong>Date:</strong></span>
                     <span id="statDate">-</span>
                 </div>
                 <div class="stat-item">
-                    <span><strong>Distanza (DB):</strong></span>
+                    <span><strong>Distance (DB):</strong></span>
                     <span id="statDistance">-</span>
                 </div>
                 <div class="stat-item">
-                    <span><strong>Durata (DB):</strong></span>
+                    <span><strong>Duration (DB):</strong></span>
                     <span id="statDuration">-</span>
                 </div>
                 <div class="stat-item">
-                    <span><strong>Velocità Media (DB):</strong></span>
+                    <span><strong>Average Speed (DB):</strong></span>
                     <span id="statSpeed">-</span>
                 </div>
                 <hr>
-                <h5 class="mt-3">Dati rilevati dal GPX:</h5>
+                <h5 class="mt-3">Data from GPX file:</h5>
                 <div class="stat-item">
-                    <span>Distanza:</span>
+                    <span>Distance:</span>
                     <span id="gpxDistance">-</span>
                 </div>
                 <div class="stat-item">
-                    <span>Dislivello Positivo:</span>
+                    <span>Elevation Gain:</span>
                     <span id="gpxElevationGain">-</span>
                 </div>
                 <div class="stat-item">
-                    <span>Dislivello Negativo:</span>
+                    <span>Elevation Loss:</span>
                     <span id="gpxElevationLoss">-</span>
                 </div>
             </div>
@@ -98,7 +98,7 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    var map = L.map('map').setView([41.9028, 12.4964], 6); // Default Italia
+    var map = L.map('map').setView([41.9028, 12.4964], 6); // Default Italy
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);

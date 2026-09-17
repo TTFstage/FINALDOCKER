@@ -63,7 +63,7 @@ class FallDetector {
         row.is_cancelled_fall = this.is_cancelled_fall;
         row.cancelled_t_impact = this.cancelled_t_impact;
 
-        // flag one-shot: non deve restare appiccicato alle righe successive
+        // one-shot flag: must not persist across subsequent rows
         if (this.is_cancelled_fall) {
             this.is_cancelled_fall = false;
             this.cancelled_t_impact = null;
@@ -95,7 +95,7 @@ class FallDetector {
                 this.pending_alert = true;
                 this.last_crash_system_time = now_sys_time;
                 this.last_confirmed_t_impact = t_imp;
-                console.warn(`🚨 CADUTA CONFERMATA al sec ${t_imp.toFixed(1)}! (Jerk=${fall.jerk.toFixed(1)})`);
+                console.warn(`🚨 CONFIRMED FALL at sec ${t_imp.toFixed(1)}! (Jerk=${fall.jerk.toFixed(1)})`);
             }
         }
 

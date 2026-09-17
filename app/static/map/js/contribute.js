@@ -30,7 +30,7 @@
       if (response.ok) {
         const user = await response.json();
         window.osmAuthenticated = true;
-        statusEl.innerHTML = `Connesso come <strong>${user.displayName}</strong> · <a href="#" id="osm-logout">Esci</a>`;
+        statusEl.innerHTML = `Connected as <strong>${user.displayName}</strong> · <a href="#" id="osm-logout">Logout</a>`;
         document.getElementById("osm-logout").addEventListener("click", async (e) => {
           e.preventDefault();
           await fetch("/api/v1/osm/logout", { method: "POST" });
@@ -39,10 +39,10 @@
       } else {
         window.osmAuthenticated = false;
         const returnTo = encodeURIComponent(window.location.pathname);
-        statusEl.innerHTML = `<a href="/api/v1/osm/auth/start?returnTo=${returnTo}">Accedi con OpenStreetMap</a> per contribuire.`;
+        statusEl.innerHTML = `<a href="/api/v1/osm/auth/start?returnTo=${returnTo}">Sign in with OpenStreetMap</a> to contribute.`;
       }
     } catch {
-      statusEl.textContent = "Impossibile verificare lo stato del login OSM.";
+      statusEl.textContent = "Unable to verify OSM login status.";
     }
     updateSubmitState();
   }
@@ -51,7 +51,7 @@
     e.preventDefault();
     if (!selectedLatLng) return;
     submitBtn.disabled = true;
-    resultEl.textContent = "Invio in corso…";
+    resultEl.textContent = "Sending…";
 
     try {
       const response = await fetch("/api/v1/osm/poi", {
@@ -65,12 +65,12 @@
       });
       const data = await response.json();
       if (!response.ok) {
-        resultEl.textContent = `Errore: ${data.error || response.status}`;
+        resultEl.textContent = `Error: ${data.error || response.status}`;
       } else {
-        resultEl.innerHTML = `Creato con successo! <a href="${data.osmUrl}" target="_blank" rel="noopener">Vedi su OSM</a>`;
+        resultEl.innerHTML = `Created successfully! <a href="${data.osmUrl}" target="_blank" rel="noopener">View on OSM</a>`;
       }
     } catch {
-      resultEl.textContent = "Errore di rete durante l'invio.";
+      resultEl.textContent = "Network error during submission.";
     } finally {
       updateSubmitState();
     }

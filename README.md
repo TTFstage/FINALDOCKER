@@ -2,7 +2,7 @@
 
 > 📄 **Documentazione tecnica completa e professionale:** `DOCUMENTAZIONE_TECNICA.md` — include stack, architettura, flusso dati, sicurezza, Redis TTL e comandi operativi.
 
-Questo è un progetto completo che dimostra l'implementazione di un'applicazione web sicura e di una pipeline di ingestione dati ad alte prestazioni (microservizi).
+Questo è un progetto completo che dimostra l'implementazione di un'applicazione web sicura (Flask) con pipeline GPS asincrona (FastAPI + RabbitMQ + Worker) e autenticazione condivisa tramite cookie di sessione (`/auth/check_session`).
 Il cuore dell'applicazione web utilizza **Flask** e `Flask-Security-Too` per gestire in modo robusto la registrazione, il login e la gestione degli utenti (incluso un sistema RBAC per gruppi), appoggiandosi a un database PostgreSQL tramite `Flask-SQLAlchemy`. L'applicazione adotta una **Modular Blueprint Architecture** per garantire manutenibilità.
 In parallelo, il progetto integra **FastAPI**, **RabbitMQ** e un **GPS Worker** per l'ingestione asincrona e l'elaborazione di dati telemetrici (es. tracciati GPS), dimostrando un'architettura ibrida e scalabile.
 
@@ -105,7 +105,7 @@ Non inizializzare **mai** le estensioni dentro `app/__init__.py` o nei file dell
 
 Tutto ciò che riguarda l'autenticazione si trova in `app/auth/`.
 
-- Per aggiungere campi al form di registrazione, modifica `app/auth/forms.py`.
+- Per aggiungere o modificare i campi utente (es. `tax_id_code`, `full_name`, `date_of_birth`, `gender`, `birth_city_country`), modifica `app/auth/forms.py` (`ExtendedRegisterForm`) e `app/auth/models.py`. Ricorda di generare la migrazione (`flask db migrate`) e applicarla (`flask db upgrade`).
 - Per cambiare il modo in cui vengono mostrate le pagine di login nativo, modifica i file HTML dentro `app/templates/security/`. (Flask-Security-Too cercherà automaticamente in quella specifica cartella).
 - Per cambiare regole globali (es. la durata delle password o il token), modifica `config.py`.
 
@@ -149,6 +149,7 @@ Home | Map | Analytics | Other
 - **Hashing:** Le password usano lo standard di settore `bcrypt`.
 - **Protezione CSRF:** Abilitata su tutti i form (incluso login/logout) tramite il token `{{ csrf_token() }}`.
 - **Hardening Cookie:** `HttpOnly` e `SameSite=Lax` per prevenire attacchi XSS e CSRF.
+- **Autenticazione Condivisa (Flask ↔ FastAPI):** Il cookie `session` viene verificato da FastAPI (`verify_flask_session`) tramite `/auth/check_session`. Il payload `user_id` è legato alla sessione (`binding`) per impedire impersonazione.
 - **DB e Migrazioni:** Utilizzo di `psycopg3` e `Flask-Migrate`.
 - **Redis:** Memoria per la posizione GPS in tempo reale (`position:{user_id}`, TTL 90s) tramite `redis_client` condiviso.
 

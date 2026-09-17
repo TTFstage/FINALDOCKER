@@ -11,11 +11,11 @@ class SignalProcessor {
 
         this.last_acc_mag = null;
         
-        // Per calcolo roughness (finestra 2s = 40 campioni)
+        // For roughness calculation (2s window = 40 samples)
         this.acc_z_history = [];
         this.roughness_window = parseInt(this.fs * 2.0);
 
-        // Per calcolo velocità GPS
+        // For GPS speed calculation
         this.last_gps_pos = null;
         this.current_speed_kmh = 0.0;
         this._updateAlpha();
@@ -43,7 +43,7 @@ class SignalProcessor {
     }
 
     process(row) {
-        // Applica i filtri
+        // Apply filters
         let fx = this._filterValue('acc_x', row.acc_x);
         let fy = this._filterValue('acc_y', row.acc_y);
         let fz = this._filterValue('acc_z', row.acc_z);
@@ -54,7 +54,7 @@ class SignalProcessor {
         
         this.initialized = true;
 
-        // Magnitudo
+        // Magnitude
         row.acc_magnitude = Math.sqrt(fx*fx + fy*fy + fz*fz);
         row.gyro_magnitude = Math.sqrt(gx*gx + gy*gy + gz*gz);
 
@@ -66,7 +66,7 @@ class SignalProcessor {
         }
         this.last_acc_mag = row.acc_magnitude;
 
-        // Roughness (deviazione standard acc_z)
+        // Roughness (standard deviation of acc_z)
         this.acc_z_history.push(fz);
         if (this.acc_z_history.length > this.roughness_window) {
             this.acc_z_history.shift();
@@ -76,7 +76,7 @@ class SignalProcessor {
         let var_z = this.acc_z_history.reduce((a, b) => a + Math.pow(b - mean_z, 2), 0) / this.acc_z_history.length;
         row.roughness = Math.sqrt(var_z);
 
-        // Velocità
+        // Speed
         if (row.speed_kmh !== undefined && row.speed_kmh !== null) {
             this.current_speed_kmh = row.speed_kmh;
         } else if (row.lat !== null && row.lon !== null && row.gps_time !== undefined) {

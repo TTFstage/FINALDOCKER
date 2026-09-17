@@ -1,17 +1,17 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <title>Login</title>
 </head>
 <body>
-    <h2>Accedi</h2>
+    <h2>Login</h2>
 
-    <!-- Gestione avanzata dei messaggi flash (Cattura gli errori di Flask-Security) -->
+    <!-- Advanced flash message handling (Captures Flask-Security errors) -->
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         {% for category, message in messages %}
-          <!-- Se la categoria è 'error', scrivi in rosso, altrimenti in blu -->
+          <!-- If category is 'error', write in red, otherwise in blue -->
           <p style="color: {% if category == 'error' %}red{% else %}blue{% endif %};">
               {{ message }}
           </p>
@@ -22,10 +22,10 @@
     <form method="POST" action="{{ url_for('security.login') }}">
         {{ login_user_form.hidden_tag() }}
         
-        <label for="identity">Username o Email:</label><br>
+        <label for="identity">Username or Email:</label><br>
         <input type="text" id="identity" name="identity" size="30" value="{{ request.form.get('identity', '') }}" required>
         
-        <!-- Errori dei campi nascosti visualizzati sotto il campo principale -->
+        <!-- Hidden field errors displayed below the main field -->
         {% for error in login_user_form.email.errors %}
             <span style="color: red;">[{{ error }}]</span>
         {% endfor %}
@@ -63,7 +63,7 @@
     </form>
 
     <br>
-    <a href="{{ url_for('core.index') }}">Torna alla Home</a> |
-    <a href="{{ url_for('security.register') }}">Non sei registrato? Crea un account</a>
+    <a href="{{ url_for('core.index') }}">Back to Home</a> |
+    <a href="{{ url_for('security.register') }}">Not registered? Create an account</a>
 </body>
 </html>

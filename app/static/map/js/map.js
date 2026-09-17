@@ -4,12 +4,12 @@
   const GEOHASH_PRECISION = 5;
 
   const ENTITY_CONFIG = {
-    stations: { url: "/api/v1/fountains", color: "#2563eb", label: "Fontanella" },
-    toilets: { url: "/api/v1/toilets", color: "#16a34a", label: "Bagno pubblico" },
+    stations: { url: "/api/v1/fountains", color: "#2563eb", label: "Fountain" },
+    toilets: { url: "/api/v1/toilets", color: "#16a34a", label: "Public toilet" },
     bicycleParkings: {
       url: "/api/v1/bicycle-parkings",
       color: "#ea580c",
-      label: "Parcheggio bici",
+      label: "Bicycle parking",
     },
 
   };
@@ -45,24 +45,24 @@
     const marker = L.marker([item.lat, item.lng], { icon });
     marker.bindPopup(popupContent(type, item));
 
-    // Aggiungi al navigatore come tappa se siamo in modalità nav
+    // Add to navigator as waypoint if in nav mode
     marker.on("click", () => {
       if (navState.active) {
         // già gestito dal popup, niente da fare
       }
     });
 
-    // Popup con pulsante "Aggiungi come tappa"
+    // Popup with "Add as waypoint" button
     const popup = L.popup().setContent(() => {
       const div = document.createElement("div");
       const config2 = ENTITY_CONFIG[type];
       let extra = "";
       if (type === "stations" && item.name) extra = `<br>${item.name}`;
-      if (type === "toilets" && item.openingHours) extra = `<br>Orari: ${item.openingHours}`;
+      if (type === "toilets" && item.openingHours) extra = `<br>Hours: ${item.openingHours}`;
 
       div.innerHTML = `<strong>${config2.label}</strong>${extra}
         <br><button class="popup-add-btn" style="margin-top:6px;padding:3px 8px;cursor:pointer;border:1px solid #2563eb;border-radius:4px;background:#eff6ff;color:#1d4ed8;font-size:0.8rem;">
-          ➕ Aggiungi come tappa
+          ➞️ Add as waypoint
         </button>`;
       div.querySelector(".popup-add-btn").addEventListener("click", () => {
         addWaypointFromMap(item.lat, item.lng, `${config2.label}${item.name ? ": " + item.name : ""}`);
@@ -147,11 +147,11 @@
     if (!userMarker) {
       userMarker = L.marker(e.latlng, { icon: userIcon, zIndexOffset: 1000 })
         .addTo(map)
-        .bindPopup("📍 Sei qui");
+        .bindPopup("📍 You are here");
     } else {
       userMarker.setLatLng(e.latlng);
     }
-    // Aggiorna campi "posizione attuale" se selezionati
+    // Update "current location" fields if selected
     refreshCurrentLocationFields();
   });
 
@@ -179,50 +179,50 @@
   function buildNavPanel() {
     const panel = document.getElementById("nav-panel");
 
-    // Pulsante apertura/chiusura
+    // Open/close button
     document.getElementById("nav-toggle").addEventListener("click", () => {
       panel.classList.toggle("hidden");
       if (!panel.classList.contains("hidden")) renderWaypointList();
     });
 
-    // Usa posizione attuale (toggle generale)
+    // Use current location (general toggle)
     document.getElementById("use-location-btn").addEventListener("click", () => {
       if (!userLatLng) {
-        showNavMsg("Posizione non ancora disponibile. Attendi il GPS.", true);
+        showNavMsg("Location not yet available. Please wait for GPS.", true);
         return;
       }
       // Se il primo waypoint non è ancora "posizione attuale", lo imposta
       if (navState.waypoints.length === 0 || !navState.waypoints[0].isCurrentLocation) {
-        addWaypointAtIndex(0, userLatLng.lat, userLatLng.lng, "Posizione attuale", true);
+        addWaypointAtIndex(0, userLatLng.lat, userLatLng.lng, "Current location", true);
       }
     });
 
-    // Calcola percorso
+    // Calculate route
     document.getElementById("calc-route-btn").addEventListener("click", calcRoute);
 
     // Azzera
     document.getElementById("clear-route-btn").addEventListener("click", clearRoute);
 
-    // Cerca waypoint (geocoding)
+    // Search waypoint (geocoding)
     document.getElementById("wp-search-btn").addEventListener("click", geocodeAndAdd);
     document.getElementById("wp-search-input").addEventListener("keydown", (e) => {
       if (e.key === "Enter") geocodeAndAdd();
     });
 
-    // Aggiungi fontanella più vicina al percorso
+    // Add nearest fountain to route
     document.getElementById("add-nearest-fountain-btn").addEventListener("click", () => addNearestOnRoute("stations"));
     document.getElementById("add-nearest-parking-btn").addEventListener("click", () => addNearestOnRoute("bicycleParkings"));
 
-    // Click sulla mappa per aggiungere waypoint (solo se nav attivo)
+    // Click on map to add waypoint (only if nav active)
     document.getElementById("map-click-add-btn").addEventListener("click", () => {
       navState.active = !navState.active;
       const btn = document.getElementById("map-click-add-btn");
       if (navState.active) {
-        btn.textContent = "✋ Smetti di selezionare";
+        btn.textContent = "✋ Stop selecting";
         btn.classList.add("active");
         map.getContainer().style.cursor = "crosshair";
       } else {
-        btn.textContent = "🖱️ Seleziona punto su mappa";
+        btn.textContent = "🖱️ Select point on map";
         btn.classList.remove("active");
         map.getContainer().style.cursor = "";
       }
@@ -291,7 +291,7 @@
         wp.lng = ll.lng;
         if (!wp.isCurrentLocation) wp.label = formatLatLng(ll.lat, ll.lng);
         renderWaypointList();
-        if (navState.routeLayer) calcRoute(); // ricalcola se c'era già un percorso
+        if (navState.routeLayer) calcRoute(); // recalculate if a route was already present
       });
 
       marker.bindPopup(`<strong>${wp.label}</strong>`);
@@ -331,10 +331,10 @@
 
     // Messaggio se vuoto
     if (navState.waypoints.length === 0) {
-      list.innerHTML = '<p class="wp-empty">Nessun punto aggiunto</p>';
+      list.innerHTML = '<p class="wp-empty">No waypoints added</p>';
     }
 
-    // Mostra bottoni azione solo se abbastanza punti
+    // Show action buttons only if enough points
     const hasEnough = navState.waypoints.length >= 2;
     document.getElementById("calc-route-btn").disabled = !hasEnough;
     document.getElementById("add-nearest-fountain-btn").disabled = !hasEnough;
@@ -357,28 +357,28 @@
     const q = input.value.trim();
     if (!q) return;
 
-    showNavMsg("🔍 Ricerca in corso...");
+    showNavMsg("🔍 Searching...");
     try {
       const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1&accept-language=it`,
-        { headers: { "Accept-Language": "it" } }
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1&accept-language=en`,
+        { headers: { "Accept-Language": "en" } }
       );
       const data = await res.json();
-      if (!data.length) { showNavMsg("Nessun risultato trovato.", true); return; }
+      if (!data.length) { showNavMsg("No results found.", true); return; }
       const place = data[0];
       addWaypointEnd(parseFloat(place.lat), parseFloat(place.lon), place.display_name.split(",")[0]);
       map.setView([place.lat, place.lon], 15);
       input.value = "";
       showNavMsg("");
     } catch {
-      showNavMsg("Errore nella ricerca.", true);
+      showNavMsg("Search error.", true);
     }
   }
 
   // ── Routing (OSRM cycling) ──────────────────────────────────────────────────
   async function calcRoute() {
     if (navState.waypoints.length < 2) return;
-    showNavMsg("⏳ Calcolo percorso...");
+    showNavMsg("⏳ Calculating route...");
 
     const coords = navState.waypoints.map((wp) => `${wp.lng},${wp.lat}`).join(";");
     const url = `https://router.project-osrm.org/route/v1/cycling/${coords}?overview=full&geometries=geojson&steps=false`;
@@ -386,7 +386,7 @@
     try {
       const res = await fetch(url);
       const data = await res.json();
-      if (data.code !== "Ok") { showNavMsg("Percorso non trovato.", true); return; }
+      if (data.code !== "Ok") { showNavMsg("Route not found.", true); return; }
 
       const route = data.routes[0];
       if (navState.routeLayer) map.removeLayer(navState.routeLayer);
@@ -395,16 +395,16 @@
         style: { color: "#2563eb", weight: 5, opacity: 0.8 },
       }).addTo(map);
 
-      // Zoom sul percorso
+      // Zoom to route
       map.fitBounds(navState.routeLayer.getBounds(), { padding: [40, 40] });
 
-      // Info percorso
+      // Route info
       const km = (route.distance / 1000).toFixed(1);
       const min = Math.round(route.duration / 60);
       navState.routeInfo = { distance: km, duration: min };
       showNavMsg(`🚴 ${km} km · ~${min} min`);
     } catch {
-      showNavMsg("Errore nel calcolo del percorso.", true);
+      showNavMsg("Route calculation error.", true);
     }
   }
 
@@ -419,9 +419,9 @@
   // ── Punto più vicino sul/nel percorso ────────────────────────────────────────
   async function addNearestOnRoute(type) {
     if (navState.waypoints.length < 2) return;
-    showNavMsg("🔍 Cerco il più vicino...");
+    showNavMsg("🔍 Looking for the nearest...");
 
-    // Bounding box del percorso (dai waypoint)
+    // Bounding box of the route (from waypoints)
     const lats = navState.waypoints.map((w) => w.lat);
     const lngs = navState.waypoints.map((w) => w.lng);
     const bbox = {
@@ -431,20 +431,20 @@
       e: Math.max(...lngs) + 0.01,
     };
 
-    // Recupera entità dalla bbox tramite geohash
+    // Retrieve entities from bbox via geohash
     const geohashes = window.geohashLib.bboxes(bbox.s, bbox.w, bbox.n, bbox.e, GEOHASH_PRECISION);
     const config = ENTITY_CONFIG[type];
 
     try {
       const res = await fetch(`${config.url}?gh5=${geohashes.join(",")}`);
       const items = await res.json();
-      if (!items.length) { showNavMsg(`Nessun ${config.label.toLowerCase()} trovato nelle vicinanze.`, true); return; }
+      if (!items.length) { showNavMsg(`No ${config.label.toLowerCase()} found nearby.`, true); return; }
 
-      // Centro del percorso
+      // Center of the route
       const midLat = (Math.min(...lats) + Math.max(...lats)) / 2;
       const midLng = (Math.min(...lngs) + Math.max(...lngs)) / 2;
 
-      // Punto più vicino al centro del percorso
+      // Nearest point to the center of the route
       let best = items[0], bestDist = Infinity;
       items.forEach((item) => {
         const d = Math.hypot(item.lat - midLat, item.lng - midLng);
@@ -452,14 +452,14 @@
       });
 
       const label = `${config.label}${best.name ? ": " + best.name : ""}`;
-      // Inserisci come penultima tappa
+      // Insert as second-to-last waypoint
       const insertAt = navState.waypoints.length - 1;
       navState.waypoints.splice(insertAt, 0, { lat: best.lat, lng: best.lng, label, isCurrentLocation: false, marker: null });
       updateWaypointMarkers();
       renderWaypointList();
       await calcRoute();
     } catch {
-      showNavMsg("Errore nel recupero dei dati.", true);
+      showNavMsg("Error fetching data.", true);
     }
   }
 

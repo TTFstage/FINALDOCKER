@@ -2,31 +2,31 @@
 {% block title %}Home{% endblock %}
 
 {% block content %}
-<h1>Benvenuto</h1>
+<h1>Welcome</h1>
 
 {% if current_user and current_user.is_authenticated %}
-    <p>Ciao, {{ current_user.username }}!</p>
+    <p>Hello, {{ current_user.username }}!</p>
 
-    <!-- SEZIONE SESSIONE GPS -->
+    <!-- GPS SESSION SECTION -->
     <section id="session-section">
-        <button id="btn-start" class="btn" onclick="startTracking();">Inizia Tracciamento GPS</button>
-        <button id="btn-stop" class="btn" onclick="stopTracking();" style="display:none;">Ferma Tracciamento GPS</button>
-        <p id="status">Stato: Tracciamento fermato.</p>
+        <button id="btn-start" class="btn" onclick="startTracking();">Start GPS Tracking</button>
+        <button id="btn-stop" class="btn" onclick="stopTracking();" style="display:none;">Stop GPS Tracking</button>
+        <p id="status">Status: Tracking stopped.</p>
     </section>
 
 {% else %}
     <p>
-        <a href="{{ url_for('security.login') }}">Accedi</a> |
-        <a href="{{ url_for('security.register') }}">Registrati</a>
+        <a href="{{ url_for('security.login') }}">Login</a> |
+        <a href="{{ url_for('security.register') }}">Register</a>
     </p>
 {% endif %}
 
-<!-- OVERLAY CRASH ALERT / SOS (gestito da main.js) -->
+<!-- CRASH ALERT / SOS OVERLAY (managed by main.js) -->
 <div id="crash-alert">
-    <h1>⚠️ CADUTA RILEVATA</h1>
-    <p>Invio SOS tra:</p>
+    <h1>⚠️ FALL DETECTED</h1>
+    <p>Sending SOS in:</p>
     <div id="timer-display">10</div>
-    <button class="btn-cancel" onclick="cancelSOS()">ANNULLA</button>
+    <button class="btn-cancel" onclick="cancelSOS()">CANCEL</button>
 </div>
 
 <script>window.RIDER_ID = {{ current_user.id if current_user.is_authenticated else 'null' }};</script>

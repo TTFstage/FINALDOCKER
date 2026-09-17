@@ -148,7 +148,7 @@ def _update_yearly_aggregates(year):
     yearly.total_duration = total_duration
     db.session.flush()
 
-@telemetry_bp.route('/attivita', methods=['POST'])
+@telemetry_bp.route('/activity', methods=['POST'])
 def create_activity():
     if not request.is_json:
         abort(400, description="Request must be JSON")
@@ -172,11 +172,11 @@ def create_activity():
         logger.exception("Error creating activity")
         abort(500, description="Internal server error")
 
-@telemetry_bp.route('/dati/giorno', methods=['GET'])
+@telemetry_bp.route('/data/day', methods=['GET'])
 def get_day():
-    date_str = request.args.get('data')
+    date_str = request.args.get('date')
     if not date_str:
-        abort(400, description="Missing 'data' parameter (YYYY-MM-DD)")
+        abort(400, description="Missing 'date' parameter (YYYY-MM-DD)")
     try:
         d = date.fromisoformat(date_str)
     except ValueError:
@@ -216,11 +216,11 @@ def get_day():
         "activities": activity_list
     })
 
-@telemetry_bp.route('/dati/giorno-ora', methods=['GET'])
+@telemetry_bp.route('/data/day-hour', methods=['GET'])
 def get_day_hour():
-    date_str = request.args.get('data')
+    date_str = request.args.get('date')
     if not date_str:
-        abort(400, description="Missing 'data' parameter")
+        abort(400, description="Missing 'date' parameter")
     try:
         d = date.fromisoformat(date_str)
     except ValueError:
@@ -239,11 +239,11 @@ def get_day_hour():
         "hourly": hourly_list
     })
 
-@telemetry_bp.route('/dati/settimana-ora', methods=['GET'])
+@telemetry_bp.route('/data/week-hour', methods=['GET'])
 def get_week_hourly():
-    start_str = request.args.get('inizio')
+    start_str = request.args.get('start')
     if not start_str:
-        abort(400, description="Missing 'inizio' parameter (start date YYYY-MM-DD)")
+        abort(400, description="Missing 'start' parameter (start date YYYY-MM-DD)")
     try:
         start_date = date.fromisoformat(start_str)
     except ValueError:
@@ -299,12 +299,12 @@ def get_week_hourly():
         "days": result
     })
 
-@telemetry_bp.route('/dati/mese', methods=['GET'])
+@telemetry_bp.route('/data/month', methods=['GET'])
 def get_month():
-    year = request.args.get('anno')
-    month = request.args.get('mese')
+    year = request.args.get('year')
+    month = request.args.get('month')
     if not year or not month:
-        abort(400, description="Missing 'anno' or 'mese' parameters")
+        abort(400, description="Missing 'year' or 'month' parameters")
     try:
         y = int(year)
         m = int(month)
@@ -345,11 +345,11 @@ def get_month():
         "daily_series": daily_series
     })
 
-@telemetry_bp.route('/dati/anno', methods=['GET'])
+@telemetry_bp.route('/data/year', methods=['GET'])
 def get_year():
-    year = request.args.get('anno')
+    year = request.args.get('year')
     if not year:
-        abort(400, description="Missing 'anno' parameter")
+        abort(400, description="Missing 'year' parameter")
     try:
         y = int(year)
     except ValueError:

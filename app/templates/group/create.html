@@ -1,27 +1,27 @@
 {% extends "base.html" %}
 
-{% block title %}Crea Gruppo{% endblock %}
+{% block title %}Create Group{% endblock %}
 
 {% block content %}
-    <h1>Crea Nuovo Gruppo</h1>
-    <p><a href="{{ url_for('group.index') }}">← Annulla</a></p>
+    <h1>Create New Group</h1>
+    <p><a href="{{ url_for('group.index') }}">← Cancel</a></p>
     <hr>
 
     <form method="POST" action="">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
         
         <p>
-            <label>Nome: *</label><br>
+            <label>Name: *</label><br>
             <input type="text" name="name" value="{{ form.name.data or '' }}" required autofocus>
             {% if form.name.errors %}<br><span style="color: red;">{% for e in form.name.errors %}{{ e }}{% endfor %}</span>{% endif %}
         </p>
         
         <p>
-            <label>Descrizione:</label><br>
+            <label>Description:</label><br>
             <textarea name="description" rows="3">{{ form.description.data or '' }}</textarea>
             {% if form.description.errors %}<br><span style="color: red;">{% for e in form.description.errors %}{{ e }}{% endfor %}</span>{% endif %}
         </p>
         
-        <button type="submit">Crea Gruppo</button>
+        <button type="submit">Create Group</button>
     </form>
 {% endblock %}

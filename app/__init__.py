@@ -8,7 +8,7 @@ def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
 
-    # Inizializza le estensioni
+    # Initialize extensions
     db.init_app(app)
     migrate.init_app(app, db)
     from extensions import redis_client
@@ -17,28 +17,27 @@ def create_app(config_class=Config):
     )
     csrf.init_app(app)
     
-    # Dobbiamo importare i datastore qui per evitare import circolari, ma i modelli vanno caricati.
-    # L'import di user_datastore deve essere locale o fatto in modo attento.
+    # We must import the datastores here to avoid circular imports, but models need to be loaded.
+    # The import of user_datastore must be local or done carefully.
     from app.auth.forms import ExtendedRegisterForm
     from app.auth.models import user_datastore
     security.init_app(app, user_datastore, register_form=ExtendedRegisterForm)
 
-    # Registra i Blueprint
+    # Register Blueprints
+    # Analytics feature
+    from app.analytics import analytics_bp
     from app.auth.routes import auth_bp
     from app.core.routes import core_bp
     from app.group import group_bp
 
+    # Map feature
+    from app.map import models as map_models  # noqa: F401
+    from app.map.api import api_bp as map_api_bp
+    from app.map.routes import pages_bp as map_pages_bp
+
     # Import telemetry models for migration detection
     from app.telemetry import models  # noqa: F401
     from app.telemetry.routes import telemetry_bp
-    
-    # Map feature
-    from app.map import models as map_models  # noqa: F401
-    from app.map.routes import pages_bp as map_pages_bp
-    from app.map.api import api_bp as map_api_bp
-
-    # Analytics feature
-    from app.analytics import analytics_bp
 
     app.register_blueprint(core_bp)
     app.register_blueprint(auth_bp, url_prefix='/auth')

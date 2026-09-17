@@ -24,7 +24,7 @@ def get_fountains():
     try:
         data = _find_by_geohashes(Station, gh5_list)
         return jsonify([s.to_dict() for s in data])
-    except Exception:
+    except Exception:  # noqa: BLE001
         current_app_logger().exception("Error fetching fountains")
         return jsonify({"error": "Failed to fetch fountains"}), 500
 
@@ -37,7 +37,7 @@ def get_toilets():
     try:
         data = _find_by_geohashes(Toilet, gh5_list)
         return jsonify([t.to_dict() for t in data])
-    except Exception:
+    except Exception:  # noqa: BLE001
         current_app_logger().exception("Error fetching toilets")
         return jsonify({"error": "Failed to fetch toilets"}), 500
 
@@ -50,7 +50,7 @@ def get_bicycle_parkings():
     try:
         data = _find_by_geohashes(BicycleParking, gh5_list)
         return jsonify([b.to_dict() for b in data])
-    except Exception:
+    except Exception:  # noqa: BLE001
         current_app_logger().exception("Error fetching bicycle parkings")
         return jsonify({"error": "Failed to fetch bicycle parkings"}), 500
 

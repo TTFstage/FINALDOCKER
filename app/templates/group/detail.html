@@ -4,25 +4,25 @@
 
 {% block content %}
     <h1>{{ group.name }}</h1>
-    <p><a href="{{ url_for('group.index') }}">← I miei gruppi</a></p>
+    <p><a href="{{ url_for('group.index') }}">← My Groups</a></p>
     <hr>
 
     {% if group.description %}<p>{{ group.description }}</p>{% endif %}
-    <p>Codice: <strong>{{ group.code }}</strong></p>
-    <p>Il tuo ruolo: {{ membership.role }}</p>
+    <p>Code: <strong>{{ group.code }}</strong></p>
+    <p>Your role: {{ membership.role }}</p>
 
     <hr>
-    <h2>Membri ({{ members|length }})</h2>
+    <h2>Members ({{ members|length }})</h2>
     <table border="1" cellpadding="5">
         <tr>
-            <th>Utente</th>
+            <th>User</th>
             <th>Email</th>
-            <th>Ruolo</th>
-            <th>Azioni</th>
+            <th>Role</th>
+            <th>Actions</th>
         </tr>
         {% for m in members %}
         <tr>
-            <td>{{ m.user.username }}{% if m.user.id == current_user.id %} (Tu){% endif %}</td>
+            <td>{{ m.user.username }}{% if m.user.id == current_user.id %} (You){% endif %}</td>
             <td>{{ m.user.email }}</td>
             <td>{{ m.role }}</td>
             <td>
@@ -32,13 +32,13 @@
                     <form method="POST" action="{{ url_for('group.change_role', group_id=group.id, user_id=m.user.id) }}" style="display: inline;">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         <input type="hidden" name="role" value="admin"/>
-                        <button type="submit">Promuovi Admin</button>
+                        <button type="submit">Promote to Admin</button>
                     </form>
                     {% elif m.role == 'admin' %}
                     <form method="POST" action="{{ url_for('group.change_role', group_id=group.id, user_id=m.user.id) }}" style="display: inline;">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         <input type="hidden" name="role" value="member"/>
-                        <button type="submit">Rimuovi Admin</button>
+                        <button type="submit">Remove Admin</button>
                     </form>
                     {% endif %}
                 {% endif %}
@@ -49,20 +49,20 @@
 
     {% if membership.role in ['owner', 'admin'] %}
     <hr>
-    <h3>Gestione</h3>
+    <h3>Management</h3>
     <form method="POST" action="{{ url_for('group.generate_code', group_id=group.id) }}" style="display: inline;">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-        <button type="submit">Rigenera Codice</button>
+        <button type="submit">Regenerate Code</button>
     </form>
     {% if invite_url %}
         <form method="POST" action="{{ url_for('group.revoke_token', group_id=group.id) }}" style="display: inline;">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-            <button type="submit">Revoca Link Invito</button>
+            <button type="submit">Revoke Invite Link</button>
         </form>
     {% else %}
         <form method="POST" action="{{ url_for('group.generate_token', group_id=group.id) }}" style="display: inline;">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-            <button type="submit">Genera Link Invito</button>
+            <button type="submit">Generate Invite Link</button>
         </form>
     {% endif %}
     {% endif %}

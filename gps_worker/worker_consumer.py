@@ -1,4 +1,4 @@
-"""Consumer RabbitMQ: alimenta il GPXStreamManager e registra i metadati dei tracciati su PostgreSQL."""
+"""RabbitMQ Consumer: feeds the GPXStreamManager and records track metadata to PostgreSQL."""
 import json
 import logging
 import os
@@ -55,14 +55,14 @@ def save_shift_metadata(session_id: str, user_id: str, gpx_path: str, distance_k
                 (session_id, user_id, gpx_path, distance_km, duration_min),
             )
     except Exception:
-        logger.exception("Errore salvataggio metadati turno su Postgres (user=%s session=%s)", user_id, session_id)
+        logger.exception("Error saving shift metadata to Postgres (user=%s session=%s)", user_id, session_id)
 
 
 def save_fall_event(session_id: str, user_id: str, lat: float | None, lon: float | None, timestamp_ms: float) -> None:
-    """Persiste una caduta confermata su Postgres (tabella fall_events)."""
+    """Persists a confirmed fall to Postgres (table fall_events)."""
     if lat is None or lon is None:
         logger.warning(
-            "Caduta confermata senza coordinate GPS valide, non salvata (user=%s session=%s)",
+            "Confirmed fall without valid GPS coordinates, not saved (user=%s session=%s)",
             user_id, session_id,
         )
         return
@@ -76,7 +76,7 @@ def save_fall_event(session_id: str, user_id: str, lat: float | None, lon: float
                 (session_id, user_id, lat, lon, timestamp_ms / 1000.0),
             )
     except Exception:
-        logger.exception("Errore salvataggio caduta su Postgres (user=%s session=%s)", user_id, session_id)
+        logger.exception("Error saving fall to Postgres (user=%s session=%s)", user_id, session_id)
 
 
 def on_message(channel, method, properties, body: bytes) -> None:
@@ -94,7 +94,7 @@ def on_message(channel, method, properties, body: bytes) -> None:
                 timestamp=envelope["timestamp"],
             )
             if envelope.get("lat") is not None and envelope.get("lon") is not None:
-            # user_id coincide con user_id (soluzione 1)
+            # user_id matches user_id (solution 1)
                 redis_client.set(
                     f"position:{envelope['user_id']}",
                     json.dumps({
@@ -124,10 +124,10 @@ def on_message(channel, method, properties, body: bytes) -> None:
                 final_path, distance_km, duration_min = result
                 save_shift_metadata(envelope["session_id"], envelope["user_id"], final_path, distance_km, duration_min)
         else:
-            logger.warning("Messaggio con type sconosciuto ignorato: %s", msg_type)
+            logger.warning("Message with unknown type ignored: %s", msg_type)
 
     except Exception:
-        logger.exception("Errore elaborazione messaggio, verrà comunque confermato (no data loss critico).")
+        logger.exception("Error processing message, it will be acknowledged anyway (no critical data loss).")
     finally:
         channel.basic_ack(delivery_tag=method.delivery_tag)
 
@@ -146,13 +146,13 @@ def run() -> None:
             channel.basic_qos(prefetch_count=20)
             channel.basic_consume(queue=RABBITMQ_QUEUE, on_message_callback=on_message)
 
-            logger.info("Worker GPS in ascolto sulla coda '%s'...", RABBITMQ_QUEUE)
+            logger.info("GPS Worker listening on queue '%s'...", RABBITMQ_QUEUE)
             channel.start_consuming()
         except pika.exceptions.AMQPConnectionError:
-            logger.warning("RabbitMQ non raggiungibile, nuovo tentativo tra 5s...")
+            logger.warning("RabbitMQ unreachable, retrying in 5s...")
             time.sleep(5)
         except KeyboardInterrupt:
-            logger.info("Interruzione richiesta, chiusura worker.")
+            logger.info("Interrupt requested, shutting down worker.")
             break
 
 

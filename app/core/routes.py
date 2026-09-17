@@ -25,16 +25,16 @@ def download_gpx(shift_id):
         
     gpx_path = shift.gpx_path
     if not os.path.exists(gpx_path):
-        abort(404, description="Il file GPX non è ancora stato generato o è stato rimosso.")
+        abort(404, description="The GPX file has not been generated yet or has been removed.")
         
     return send_file(gpx_path, as_attachment=True, download_name=f"session_{shift.session_id}.gpx")
 
 @core_bp.route("/trigger_sos", methods=["POST"])
 @login_required
 def trigger_sos():
-    """Riceve la notifica SOS lato server. Al momento logga soltanto l'evento;
-    l'invio effettivo (SMS/email ai contatti d'emergenza) è fuori scope qui
-    e va collegato a un servizio di notifica dedicato."""
+    """Receives the SOS notification on the server side. Currently only logs the event;
+    the actual sending (SMS/email to emergency contacts) is out of scope here
+    and should be connected to a dedicated notification service."""
     from flask import current_app
-    current_app.logger.warning("SOS attivato dall'utente id=%s", current_user.id)
+    current_app.logger.warning("SOS triggered by user id=%s", current_user.id)
     return jsonify({"status": "received"}), 200

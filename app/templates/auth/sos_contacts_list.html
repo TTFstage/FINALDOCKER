@@ -1,20 +1,20 @@
 {% extends "base.html" %}
 
-{% block title %}Contatti SOS{% endblock %}
+{% block title %}SOS Contacts{% endblock %}
 
 {% block content %}
-    <h1>Contatti SOS</h1>
-    <p><a href="{{ url_for('auth.add_sos_contact') }}">+ Aggiungi nuovo contatto</a> | <a href="{{ url_for('other.index') }}">← Other</a></p>
+    <h1>SOS Contacts</h1>
+    <p><a href="{{ url_for('auth.add_sos_contact') }}">+ Add new contact</a> | <a href="{{ url_for('other.index') }}">← Other</a></p>
     <hr>
 
     {% if contacts %}
     <table border="1" cellpadding="5">
         <tr>
-            <th>Nome</th>
-            <th>Telefono</th>
-            <th>Relazione</th>
-            <th>Priorità</th>
-            <th>Azioni</th>
+            <th>Name</th>
+            <th>Phone</th>
+            <th>Relationship</th>
+            <th>Priority</th>
+            <th>Actions</th>
         </tr>
         {% for contact in contacts %}
         <tr>
@@ -23,16 +23,16 @@
             <td>{{ contact.relationship or '-' }}</td>
             <td>{{ contact.priority }}</td>
             <td>
-                <a href="{{ url_for('auth.edit_sos_contact', contact_id=contact.id) }}">Modifica</a>
+                <a href="{{ url_for('auth.edit_sos_contact', contact_id=contact.id) }}">Edit</a>
                 <form method="POST" action="{{ url_for('auth.delete_sos_contact', contact_id=contact.id) }}" style="display: inline;">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                    <button type="submit">Elimina</button>
+                    <button type="submit">Delete</button>
                 </form>
             </td>
         </tr>
         {% endfor %}
     </table>
     {% else %}
-    <p>Nessun contatto SOS.</p>
+    <p>No SOS contacts found.</p>
     {% endif %}
 {% endblock %}

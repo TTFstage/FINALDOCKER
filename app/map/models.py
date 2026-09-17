@@ -2,7 +2,7 @@ from extensions import db
 
 
 class Station(db.Model):
-    """Fontanelle e case dell'acqua (tabella 'stations' in Prisma)."""
+    """Water fountains and water dispensers (table 'stations' in Prisma)."""
 
     __tablename__ = "stations"
 

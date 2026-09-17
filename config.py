@@ -2,13 +2,13 @@ import os
 
 from dotenv import load_dotenv
 
-# Carica le variabili dal file .env nella directory corrente
+# Load environment variables from .env file in the current directory
 load_dotenv()
 
 class Config:
-    # --- CHIAVI DI SICUREZZA ---
-    SECRET_KEY = os.environ.get('SECRET_KEY') or 'chiave-fallback-da-non-usare-in-prod'
-    SECURITY_PASSWORD_SALT = os.environ.get('SECURITY_PASSWORD_SALT') or 'salt-fallback-da-non-usare-in-prod'
+    # --- SECURITY KEYS ---
+    SECRET_KEY = os.environ.get('SECRET_KEY') or 'fallback-key-do-not-use-in-prod'
+    SECURITY_PASSWORD_SALT = os.environ.get('SECURITY_PASSWORD_SALT') or 'fallback-salt-do-not-use-in-prod'
 
     # --- DATABASE CONFIGURATION ---
     DB_USER = os.environ.get('DB_USER', 'postgres')
@@ -19,7 +19,7 @@ class Config:
     REDIS_HOST = os.environ.get('REDIS_HOST', 'localhost')
     REDIS_PORT = int(os.environ.get('REDIS_PORT', '6379'))
 
-    # Recupero e costruzione sicura dell'URI SQLAlchemy usando psycopg (psycopg3)
+    # Safe retrieval and construction of the SQLAlchemy URI using psycopg (psycopg3)
     _raw_db_url = os.environ.get('DATABASE_URL')
     if _raw_db_url:
         if _raw_db_url.startswith('postgres://'):
@@ -36,7 +36,7 @@ class Config:
     # --- FLASK-SECURITY CONFIGURATIONS ---
     SECURITY_REGISTERABLE = True
     SECURITY_SEND_REGISTER_EMAIL = False
-    # Abilita la gestione nativa dell'username per login e registrazione
+    # Enable native username management for login and registration
     # --- FLASK-SECURITY CONFIGURATIONS ---
     SECURITY_POST_LOGIN_VIEW = '/me'
     SECURITY_USERNAME_ENABLE = True
@@ -45,19 +45,19 @@ class Config:
             {"email": {"case_insensitive": True}},
             {"username": {"case_insensitive": True}}
         ]
-    SECURITY_PASSWORD_HASH = 'bcrypt' # Tipo di hashing consigliato
+    SECURITY_PASSWORD_HASH = 'bcrypt'  # Recommended hashing type
 
-    # --- SICUREZZA COOKIE E SESSIONI (HARDENING) ---
-    # Impedisce a JavaScript di leggere i cookie di sessione (Protezione contro attacchi XSS)
+    # --- COOKIE AND SESSION SECURITY (HARDENING) ---
+    # Prevents JavaScript from reading session cookies (protection against XSS attacks)
     SESSION_COOKIE_HTTPONLY = True
     REMEMBER_COOKIE_HTTPONLY = True
     
-    # Previene l'invio dei cookie in contesti cross-site (Protezione contro attacchi CSRF)
-    SESSION_COOKIE_SAMESITE = 'Lax' # Opzioni: 'Strict', 'Lax', 'None' (se si usa 'None', assicurarsi di usare HTTPS)
+    # Prevents cookies from being sent in cross-site contexts (protection against CSRF attacks)
+    SESSION_COOKIE_SAMESITE = 'Lax'  # Options: 'Strict', 'Lax', 'None' (if using 'None', ensure HTTPS is used)
     
-    # Abilita la protezione CSRF su tutti i form WTForms
+    # Enables CSRF protection on all WTForms forms
     WTF_CSRF_ENABLED = True
 
-    # NOTA PER LA PRODUZIONE (quando si usa HTTPS):
+    # NOTE FOR PRODUCTION (when using HTTPS):
     # SESSION_COOKIE_SECURE = True
     # REMEMBER_COOKIE_SECURE = True

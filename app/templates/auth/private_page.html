@@ -1,16 +1,21 @@
 {% extends "base.html" %}
-{% block title %}Profilo{% endblock %}
+{% block title %}Profile{% endblock %}
 
 {% block content %}
-<h1>Profilo</h1>
+<h1>Profile</h1>
 <p><strong>Username:</strong> {{ username }}</p>
 <p><strong>Email:</strong> {{ email }}</p>
-<p><strong>Telefono:</strong> {{ phone_number if phone_number else 'Non impostato' }}</p>
+<p><strong>Phone:</strong> {{ phone_number if phone_number else 'Not set' }}</p>
+<p><strong>Tax ID Code:</strong> {{ tax_id_code }}</p>
+<p><strong>Full Name:</strong> {{ full_name }}</p>
+<p><strong>Date of Birth:</strong> {{ date_of_birth }}</p>
+<p><strong>Gender:</strong> {{ gender }}</p>
+<p><strong>City/Country of Birth:</strong> {{ birth_city_country }}</p>
 
 <hr>
 
 <!-- LOGOUT -->
-<h2>Sessione</h2>
+<h2>Session</h2>
 <form method="POST" action="{{ url_for('security.logout') }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
     <button type="submit">Logout</button>
@@ -18,10 +23,10 @@
 
 <hr>
 
-<!-- ELIMINA ACCOUNT -->
-<h2>Zona Pericolosa</h2>
-<form method="POST" action="{{ url_for('auth.delete_account') }}" onsubmit="return confirm('Sei sicuro di voler eliminare il tuo account? Questa azione è irreversibile.');">
+<!-- DELETE ACCOUNT -->
+<h2>Danger Zone</h2>
+<form method="POST" action="{{ url_for('auth.delete_account') }}" onsubmit="return confirm('Are you sure you want to delete your account? This action is irreversible.');">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-    <button type="submit">Elimina Account</button>
+    <button type="submit">Delete Account</button>
 </form>
 {% endblock %}

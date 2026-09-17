@@ -1,49 +1,50 @@
 {% extends "base.html" %}
 
-{% block title %}{{ 'Modifica' if contact else 'Aggiungi' }} Contatto SOS{% endblock %}
+{% block title %}{{ 'Edit' if contact else 'Add' }} SOS Contact{% endblock %}
 
 {% block content %}
-    <h1>{{ 'Modifica' if contact else 'Aggiungi' }} Contatto SOS</h1>
-    <p><a href="{{ url_for('auth.list_sos_contacts') }}">← Annulla</a></p>
+    <h1>{{ 'Edit' if contact else 'Add' }} SOS Contact</h1>
+    <p><a href="{{ url_for('auth.list_sos_contacts') }}">← Cancel</a></p>
     <hr>
 
     <form method="POST" action="">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
         
         <p>
-            <label>Nome: *</label><br>
+            <label>Name: *</label><br>
             <input type="text" name="name" value="{{ form.name.data or '' }}" required>
             {% if form.name.errors %}<br><span style="color: red;">{% for e in form.name.errors %}{{ e }}{% endfor %}</span>{% endif %}
         </p>
         
         <p>
-            <label>Telefono: *</label><br>
+            <label>Phone: *</label><br>
             <input type="text" name="phone" value="{{ form.phone.data or '' }}" required>
             {% if form.phone.errors %}<br><span style="color: red;">{% for e in form.phone.errors %}{{ e }}{% endfor %}</span>{% endif %}
         </p>
         
         <p>
-            <label>Relazione:</label><br>
+            <label>Relationship:</label><br>
             <select name="relationship">
-                <option value="">Seleziona...</option>
-                <option value="Coniuge/Partner" {% if form.relationship.data == 'Coniuge/Partner' %}selected{% endif %}>Coniuge/Partner</option>
-                <option value="Genitore" {% if form.relationship.data == 'Genitore' %}selected{% endif %}>Genitore</option>
-                <option value="Fratello/Sorella" {% if form.relationship.data == 'Fratello/Sorella' %}selected{% endif %}>Fratello/Sorella</option>
-                <option value="Figlio/a" {% if form.relationship.data == 'Figlio/a' %}selected{% endif %}>Figlio/a</option>
-                <option value="Amico/a" {% if form.relationship.data == 'Amico/a' %}selected{% endif %}>Amico/a</option>
-                <option value="Altro" {% if form.relationship.data == 'Altro' %}selected{% endif %}>Altro</option>
+                <option value="">Select...</option>
+                <option value="Spouse/Partner" {% if form.relationship.data == 'Spouse/Partner' %}selected{% endif %}>Spouse/Partner</option>
+                <option value="Parent" {% if form.relationship.data == 'Parent' %}selected{% endif %}>Parent</option>
+                <option value="Sibling" {% if form.relationship.data == 'Sibling' %}selected{% endif %}>Sibling</option>
+                <option value="Child" {% if form.relationship.data == 'Child' %}selected{% endif %}>Child</option>
+                <option value="Friend" {% if form.relationship.data == 'Friend' %}selected{% endif %}>Friend</option>
+                <option value="Colleague" {% if form.relationship.data == 'Colleague' %}selected{% endif %}>Colleague</option>
+                <option value="Other" {% if form.relationship.data == 'Other' %}selected{% endif %}>Other</option>
             </select>
         </p>
         
         <p>
-            <label>Priorità:</label><br>
+            <label>Priority:</label><br>
             <select name="priority">
-                <option value="0" {% if form.priority.data == 0 %}selected{% endif %}>Bassa</option>
-                <option value="1" {% if form.priority.data == 1 %}selected{% endif %}>Media</option>
-                <option value="2" {% if form.priority.data == 2 %}selected{% endif %}>Alta</option>
+                <option value="0" {% if form.priority.data == 0 %}selected{% endif %}>Low</option>
+                <option value="1" {% if form.priority.data == 1 %}selected{% endif %}>Medium</option>
+                <option value="2" {% if form.priority.data == 2 %}selected{% endif %}>High</option>
             </select>
         </p>
         
-        <button type="submit">{{ 'Salva' if contact else 'Aggiungi' }}</button>
+        <button type="submit">{{ 'Save' if contact else 'Add' }}</button>
     </form>
 {% endblock %}

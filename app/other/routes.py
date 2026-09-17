@@ -7,5 +7,5 @@ from app.other import other_bp
 @other_bp.route('/')
 @auth_required()
 def index():
-    """Pagina hub con i link a Profile e Groups."""
+    """Hub page with links to Profile and Groups."""
     return render_template('other/index.html')

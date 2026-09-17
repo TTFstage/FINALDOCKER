@@ -23,7 +23,12 @@ class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(255), unique=True, nullable=False)
     email = db.Column(db.String(255), unique=True, nullable=False)
-    phone_number = db.Column(db.String(20), unique=True, nullable=True)    
+    phone_number = db.Column(db.String(20), unique=True, nullable=True)
+    tax_id_code = db.Column(db.String(16), unique=True, nullable=False)
+    full_name = db.Column(db.String(200), nullable=False)
+    date_of_birth = db.Column(db.Date(), nullable=False)
+    gender = db.Column(db.String(1), nullable=False)
+    birth_city_country = db.Column(db.String(200), nullable=False)
     password = db.Column(db.String(255), nullable=False)
     active = db.Column(db.Boolean(), default=True)
     fs_uniquifier = db.Column(db.String(64), unique=True, nullable=False, default=lambda: uuid.uuid4().hex)
@@ -61,7 +66,7 @@ class Group(db.Model):
 
     @staticmethod
     def generate_group_code():
-        """Genera un codice univoco per il gruppo (es. 'abc-defg-hij')."""
+        """Generates a unique code for the group (e.g. 'abc-defg-hij')."""
         part1 = ''.join(secrets.choice(string.ascii_lowercase) for _ in range(3))
         part2 = ''.join(secrets.choice(string.ascii_lowercase) for _ in range(4))
         part3 = ''.join(secrets.choice(string.ascii_lowercase) for _ in range(3))
@@ -70,8 +75,8 @@ class Group(db.Model):
     @staticmethod
     def normalize_code(raw_code: str) -> str:
         """
-        Normalizza il codice nel formato standard 'xxx-yyyy-zzz'.
-        Supporta input con o senza trattini ed è insensibile alle maiuscole.
+        Normalizes the code to the standard format 'xxx-yyyy-zzz'.
+        Supports input with or without dashes and is case-insensitive.
         """
         if not raw_code:
             return ""
@@ -81,12 +86,12 @@ class Group(db.Model):
         return raw_code.strip().lower()
 
     def generate_security_token(self):
-        """Genera un nuovo token di sicurezza casuale url-safe."""
+        """Generates a new random url-safe security token."""
         self.security_token = secrets.token_urlsafe(32)
         return self.security_token
 
     def revoke_security_token(self):
-        """Revoca il token di sicurezza attuale, invalidando i vecchi link di invito."""
+        """Revokes the current security token, invalidating old invite links."""
         self.security_token = None
 
 class RiderShift(db.Model):
@@ -114,14 +119,14 @@ class FallEvent(db.Model):
 
 
 class SOSContact(db.Model):
-    """Contatti di emergenza per le notifiche SOS."""
+    """Emergency contacts for SOS notifications."""
     __tablename__ = 'sos_contacts'
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     name = db.Column(db.String(100), nullable=False)
     phone = db.Column(db.String(20), nullable=False)
-    relationship = db.Column(db.String(50), nullable=True)  # es: "Coniuge", "Fratello", "Amico"
-    priority = db.Column(db.Integer, default=0, nullable=False)  # Ordine di priorità
+    relationship = db.Column(db.String(50), nullable=True)  # e.g.: "Spouse", "Sibling", "Friend"
+    priority = db.Column(db.Integer, default=0, nullable=False)  # Priority order
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     
     user = db.relationship('User', backref=db.backref('sos_contacts', lazy=True, cascade='all, delete-orphan'))
@@ -135,7 +140,7 @@ class SOSContact(db.Model):
     @validates('phone')
     def validate_phone(self, key, value):
         if value:
-            return re.sub(r'[^\d+\-\s\(\)]', '', value)  # Mantieni solo numeri e caratteri telefonici validi
+            return re.sub(r'[^\d+\-\s\(\)]', '', value)  # Keep only digits and valid phone characters
         return value
 
 # We initialize the user_datastore here, but we will pass it to security.init_app in the factory

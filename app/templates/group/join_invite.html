@@ -1,15 +1,15 @@
 {% extends "base.html" %}
 
-{% block title %}Invito - {{ group.name }}{% endblock %}
+{% block title %}Invite - {{ group.name }}{% endblock %}
 
 {% block content %}
-    <h1>Invito: {{ group.name }}</h1>
+    <h1>Invite: {{ group.name }}</h1>
     {% if group.description %}<p>{{ group.description }}</p>{% endif %}
-    <p>Membri: {{ group.members|length }}</p>
+    <p>Members: {{ group.members|length }}</p>
     <hr>
 
     <form method="POST" action="">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-        <button type="submit">Accetta Invito</button>
+        <button type="submit">Accept Invite</button>
     </form>
 {% endblock %}

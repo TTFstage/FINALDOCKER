@@ -1,16 +1,16 @@
 import math
 
 
-def distanza_perpendicolare(punto, p1, p2):
-    """Calcola la distanza perpendicolare di un punto (lat, lon) dalla retta p1-p2."""
-    lat, lon = punto[0], punto[1]
+def perpendicular_distance(point, p1, p2):
+    """Calculates the perpendicular distance of a point (lat, lon) from the line p1-p2."""
+    lat, lon = point[0], point[1]
     lat1, lon1 = p1[0], p1[1]
     lat2, lon2 = p2[0], p2[1]
 
     if lat1 == lat2 and lon1 == lon2:
         return math.hypot(lat - lat1, lon - lon1)
 
-    # Conversione approssimata per coordinate geografiche a corte distanze
+    # Approximate conversion for geographic coordinates at short distances
     dx = lat2 - lat1
     dy = lon2 - lon1
     num = abs(dy * lat - dx * lon + lat2 * lon1 - lon2 * lat1)
@@ -18,29 +18,29 @@ def distanza_perpendicolare(punto, p1, p2):
     return num / den
 
 
-def ramer_douglas_peucker(punti, epsilon=0.00005):
-    """Semplifica una lista di punti (lat, lon, elev, time) mantenendo la geometria.
+def ramer_douglas_peucker(points, epsilon=0.00005):
+    """Simplifies a list of points (lat, lon, elev, time) while preserving geometry.
 
-    :param epsilon: Tolleranza in gradi. ~0.00005 corrisponde a circa 5 metri.
+    :param epsilon: Tolerance in degrees. ~0.00005 corresponds to approximately 5 meters.
     """
-    if len(punti) < 3:
-        return punti
+    if len(points) < 3:
+        return points
 
     dmax = 0.0
     index = 0
-    fine = len(punti) - 1
+    end = len(points) - 1
 
-    # Cerca il punto con la massima distanza perpendicolare dalla retta che unisce inizio e fine
-    for i in range(1, fine):
-        d = distanza_perpendicolare(punti[i], punti[0], punti[fine])
+    # Find the point with the maximum perpendicular distance from the line connecting start and end
+    for i in range(1, end):
+        d = perpendicular_distance(points[i], points[0], points[end])
         if d > dmax:
             index = i
             dmax = d
 
-    # Se la distanza massima è superiore a epsilon, ricorsione sui due sotto-segmenti
+    # If the maximum distance exceeds epsilon, recurse on both sub-segments
     if dmax > epsilon:
-        risultato1 = ramer_douglas_peucker(punti[: index + 1], epsilon)
-        risultato2 = ramer_douglas_peucker(punti[index:], epsilon)
-        return risultato1[:-1] + risultato2
+        result1 = ramer_douglas_peucker(points[: index + 1], epsilon)
+        result2 = ramer_douglas_peucker(points[index:], epsilon)
+        return result1[:-1] + result2
     else:
-        return [punti[0], punti[fine]]
+        return [points[0], points[end]]

@@ -1,13 +1,13 @@
 // ==========================================
-// VARIABILI DI STATO E CONFIGURAZIONE
+// STATE VARIABLES AND CONFIGURATION
 // ==========================================
-let watchId = null;            // ID del sensore di geolocalizzazione (per poterlo fermare)
-let isTracking = false;        // Flag booleano per indicare se il tracciamento è attivo
-let sendInterval = null;       // Riferimento al timer che invia i dati periodicamente
+let watchId = null;            // Geolocation sensor ID (to be able to stop it)
+let isTracking = false;        // Boolean flag indicating whether tracking is active
+let sendInterval = null;       // Reference to the timer that periodically sends data
 
-let lastAcc = null;            // Ultimi dati di accelerazione registrati
-let lastGyro = null;           // Ultimi dati del giroscopio registrati
-let currentIntervalMs = 50;    // Intervallo di invio corrente (default 50ms = 20Hz)
+let lastAcc = null;            // Last recorded acceleration data
+let lastGyro = null;           // Last recorded gyroscope data
+let currentIntervalMs = 50;    // Current sending interval (default 50ms = 20Hz)
 
 let headingEstimator = new HeadingEstimator();
 let signalProcessor = new SignalProcessor();
@@ -21,28 +21,28 @@ let lastGps = null;
 let sosCountdownTimer = null;
 let sosCountdownValue = 10;
 
-let sessionId = null;          // ID univoco del turno di tracciamento corrente
+let sessionId = null;          // Unique ID of the current tracking session
 
-// LOCK ATOMICO PER SOS
-let sosLock = false;           // Impedisce riavvio multiplo vibrazione iniziale
+// ATOMIC LOCK FOR SOS
+let sosLock = false;           // Prevents multiple restarts of the initial vibration
 
 
 // ==========================================
-// GESTIONE DEI SENSORI DI MOVIMENTO
+// MOTION SENSOR MANAGEMENT
 // ==========================================
 
-// Funzione chiamata ad ogni evento di movimento del dispositivo
+// Function called on every device motion event
 function handleMotion(e) {
     if (!isTracking) return;
-    // Salva i dati dell'accelerazione (inclusa la gravità) se disponibili
+    // Save acceleration data (including gravity) if available
     if (e.accelerationIncludingGravity) lastAcc = e.accelerationIncludingGravity;
-    // Salva i dati di rotazione (giroscopio) se disponibili
+    // Save rotation data (gyroscope) if available
     if (e.rotationRate) lastGyro = e.rotationRate;
 }
 
 
 // ==========================================
-// COMUNICAZIONE CON IL SERVER (API)
+// SERVER COMMUNICATION (API)
 // ==========================================
 
 
@@ -50,7 +50,7 @@ function handleMotion(e) {
 async function flushBuffer() {
     if (dataBuffer.length === 0) return;
     
-    // Copia e svuota il buffer immediatamente
+    // Copy and immediately clear the buffer
     const payload = [...dataBuffer];
     dataBuffer = [];
     
@@ -61,18 +61,18 @@ async function flushBuffer() {
             body: JSON.stringify(payload)
         });
         if (!res.ok) {
-            console.error("Errore invio dati:", res.status, await res.text());
+            console.error("Error sending data:", res.status, await res.text());
         }
     } catch (err) {
-        console.error("Errore invio dati:", err);
+        console.error("Error sending data:", err);
     }
 }
 
 // ==========================================
-// GESTIONE DELL'ALLARME SOS E CONTO ALLA ROVESCIA
+// SOS ALARM AND COUNTDOWN MANAGEMENT
 // ==========================================
 
-// Avvia il conto alla rovescia locale
+// Start the local countdown
 function startSOSCountdown() {
     if (sosCountdownTimer !== null || sosLock) return;
     sosLock = true;
@@ -91,7 +91,7 @@ function startSOSCountdown() {
             sosCountdownTimer = null;
             sosLock = false;
             document.getElementById('crash-alert').style.display = 'none';
-            alert("Notifica SOS inviata ai contatti d'emergenza!");
+            alert("SOS notification sent to emergency contacts!");
             fallDetector.confirmAlert();
             
             fetch('/trigger_sos', { method: 'POST' }).catch(console.error);
@@ -99,7 +99,7 @@ function startSOSCountdown() {
     }, 1000);
 }
 
-// Annulla l'allarme SOS se l'utente preme il pulsante di smentita in tempo
+// Cancel the SOS alarm if the user presses the cancel button in time
 function cancelSOS() {
     document.getElementById('crash-alert').style.display = 'none';
     sosLock = false;
@@ -114,10 +114,10 @@ function cancelSOS() {
 
 
 // ==========================================
-// LOOP PRINCIPALE DI CAMPIONAMENTO
+// MAIN SAMPLING LOOP
 // ==========================================
 
-// Eseguito a intervalli regolari per inviare gli ultimi dati memorizzati dei sensori
+// Executed at regular intervals to send the latest stored sensor data
 function tick() {
     if (!isTracking) return;
     if (t0 === null) t0 = Date.now();
@@ -151,9 +151,9 @@ function tick() {
         startSOSCountdown();
     }
 
-    // Al server viene inviato esclusivamente il sottoinsieme di campi richiesto dalla pipeline
-    // (lat, lon, velocità, timestamp, esito fall detection, identità rider/sessione per il worker GPX):
-    // nessun dato grezzo dei sensori.
+    // Only the subset of fields required by the pipeline is sent to the server
+    // (lat, lon, speed, timestamp, fall detection result, rider/session identity for GPX worker):
+    // no raw sensor data is sent.
     dataBuffer.push({
         rider_id: String(window.RIDER_ID),
         session_id: sessionId,
@@ -166,41 +166,41 @@ function tick() {
     });
 }
 
-// Modifica la frequenza di campionamento (es. per risparmiare batteria quando si è fermi)
+// Change the sampling rate (e.g. to save battery when stationary)
 function setSamplingRate(ms, force = false) {
     if (currentIntervalMs === ms && !force) return;
     currentIntervalMs = ms;
 
-    // Riavvia l'intervallo con la nuova frequenza
+    // Restart the interval with the new rate
     if (sendInterval !== null) {
         clearInterval(sendInterval);
         sendInterval = setInterval(tick, currentIntervalMs);
     }
 
-    // Aggiorna il filtro con la nuova frequenza
+    // Update the filter with the new sampling rate
     signalProcessor.setSamplingRate(1000.0 / ms);
 
-    // Aggiorna l'interfaccia grafica in base allo stato (fermo o in movimento)
+    // Update the UI based on state (stopped or moving)
     const statusEl = document.getElementById('status');
     if (ms > 200) {
-        statusEl.innerText = "Stato: Fermo / Semaforo (Risparmio Batteria 1Hz)";
+        statusEl.innerText = "Status: Stopped / Traffic light (Battery saving 1Hz)";
         statusEl.style.backgroundColor = "#fff3cd";
     } else {
-        statusEl.innerText = "Stato: In Movimento (Tracciamento 20Hz)";
+        statusEl.innerText = "Status: Moving (Tracking 20Hz)";
         statusEl.style.backgroundColor = "#d4edda";
     }
 }
 
 
 // ==========================================
-// AVVIO E ARRESTO DEL TRACCIAMENTO
+// START AND STOP TRACKING
 // ==========================================
 
-// Avvia il tracciamento dei sensori, del GPS e la comunicazione periodica
+// Start tracking sensors, GPS and periodic communication
 async function startTracking() {
     isTracking = true;
     sosLock = false;
-    // Fallback per HTTP locale: crypto.randomUUID() esiste solo su HTTPS
+    // Fallback for local HTTP: crypto.randomUUID() only exists on HTTPS
     sessionId = (crypto && crypto.randomUUID) ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
         var r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
         return v.toString(16);
@@ -213,20 +213,20 @@ async function startTracking() {
     setSamplingRate(50, true);
     t0 = Date.now();
 
-    // Gestione dei permessi per i sensori su dispositivi iOS (Safari)
+    // Handle sensor permissions on iOS devices (Safari)
     let perm = await HeadingEstimator.requestPermissions();
     if (!perm && typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
-        alert('Permesso sensori non concesso.');
+        alert('Sensor permission not granted.');
         stopTracking();
         return;
     }
 
     headingEstimator.start();
 
-    // Registra l'ascoltatore per i movimenti del dispositivo
+    // Register the device motion event listener
     window.addEventListener('devicemotion', handleMotion);
 
-    // Avvia la geolocalizzazione per tracciare posizione e velocità
+    // Start geolocation to track position and speed
     if ('geolocation' in navigator) {
         watchId = navigator.geolocation.watchPosition((pos) => {
             if (isTracking) {
@@ -237,35 +237,35 @@ async function startTracking() {
                     time: pos.timestamp || Date.now()
                 };
                 
-                // Regola dinamicamente la frequenza di campionamento in base alla velocità GPS
+                // Dynamically adjust the sampling rate based on GPS speed
                 if (pos.coords.speed !== null && pos.coords.speed !== undefined) {
                     if (pos.coords.speed < 0.6) {
-                        setSamplingRate(1000); // Velocità molto bassa -> Risparmio batteria (1Hz)
+                        setSamplingRate(1000); // Very low speed -> Battery saving (1Hz)
                     } else {
-                        setSamplingRate(50);   // In movimento -> Alta precisione (20Hz)
+                        setSamplingRate(50);   // Moving -> High precision (20Hz)
                     }
                 }
             }
-        }, (err) => console.error("Errore GPS:", err), { enableHighAccuracy: true });
+        }, (err) => console.error("GPS error:", err), { enableHighAccuracy: true });
     }
 
-    // Avvia il timer principale per l'invio dei dati
+    // Start the main data sending timer
     sendInterval = setInterval(tick, currentIntervalMs);
     flushInterval = setInterval(flushBuffer, 500);
 }
 
-// Ferma completamente il tracciamento e pulisce gli eventi/timer attivi
+// Completely stop tracking and clean up active events/timers
 function stopTracking() {
     isTracking = false;
     window.removeEventListener('devicemotion', handleMotion);
     
-    // Rimuove il controllo della posizione GPS
+    // Remove the GPS position watch
     if (watchId !== null && 'geolocation' in navigator) {
         navigator.geolocation.clearWatch(watchId);
         watchId = null;
     }
     
-    // Ferma l'invio periodico dei dati
+    // Stop the periodic data sending
     if (sendInterval !== null) {
         clearInterval(sendInterval);
         sendInterval = null;
@@ -276,7 +276,7 @@ function stopTracking() {
         flushInterval = null;
     }
     
-    // Invia eventuali dati rimanenti, poi segnala al worker GPS la chiusura del turno
+    // Send any remaining data, then signal the GPS worker to close the session
     flushBuffer().then(() => {
         if (sessionId !== null) {
             fetch('/session/end', {
@@ -284,19 +284,19 @@ function stopTracking() {
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ rider_id: String(window.RIDER_ID), session_id: sessionId })
             }).then(res => {
-                if (!res.ok) console.error("Errore chiusura sessione:", res.status);
-            }).catch(err => console.error("Errore chiusura sessione:", err));
+                if (!res.ok) console.error("Session close error:", res.status);
+            }).catch(err => console.error("Session close error:", err));
             sessionId = null;
         }
     });
 
     headingEstimator.stop();
     
-    // Ripristina l'interfaccia grafica iniziale
+    // Restore the initial UI state
     document.getElementById('btn-stop').style.display = "none";
     document.getElementById('btn-stop').disabled = true;
     document.getElementById('btn-start').style.display = "inline-block";
     document.getElementById('btn-start').disabled = false;
-    document.getElementById('status').innerText = "Stato: Tracciamento fermato.";
+    document.getElementById('status').innerText = "Status: Tracking stopped.";
     document.getElementById('status').style.backgroundColor = "#e0e0e0";
 }

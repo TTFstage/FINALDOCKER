@@ -3,19 +3,19 @@
 
 {% block content %}
 <h1>Other</h1>
-<p>Seleziona una sezione:</p>
+<p>Select a section:</p>
 <ul>
     <li>
-        <a href="{{ url_for('auth.me') }}">Profilo</a>
-        — Dati account, logout, elimina account
+        <a href="{{ url_for('auth.me') }}">Profile</a>
+        — Account data, logout, delete account
     </li>
     <li>
-        <a href="{{ url_for('group.index') }}">Gruppi</a>
-        — I tuoi gruppi, crea o unisciti a un gruppo
+        <a href="{{ url_for('group.index') }}">Groups</a>
+        — Your groups, create or join a group
     </li>
     <li>
-        <a href="{{ url_for('auth.list_sos_contacts') }}">Contatti SOS</a>
-        — Gestisci i tuoi contatti di emergenza (max 5)
+        <a href="{{ url_for('auth.list_sos_contacts') }}">SOS Contacts</a>
+        — Manage your emergency contacts (max 5)
     </li>
 </ul>
 {% endblock %}

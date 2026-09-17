@@ -4,54 +4,54 @@ from wtforms.validators import DataRequired, Length, Optional
 
 
 def normalize_code(code: str) -> str:
-    """Normalizza un codice gruppo rimuovendo spazi e trattini."""
+    """Normalizes a group code by removing spaces and dashes."""
     return code.replace('-', '').replace(' ', '').lower()
 
 
 class CreateGroupForm(FlaskForm):
-    """Form per la creazione di un nuovo gruppo."""
+    """Form for creating a new group."""
     name = StringField(
-        'Nome del Gruppo',
+        'Group Name',
         validators=[
-            DataRequired(message='Il nome del gruppo è obbligatorio.'),
+            DataRequired(message='Group name is required.'),
             Length(
                 min=2,
                 max=100,
-                message='Il nome deve essere tra %(min)d e %(max)d caratteri.'
+                message='Name must be between %(min)d and %(max)d characters.'
             )
         ],
-        render_kw={'placeholder': 'Es. Team Progetto Alpha', 'autofocus': True}
+        render_kw={'placeholder': 'e.g. Project Alpha Team', 'autofocus': True}
     )
     description = TextAreaField(
-        'Descrizione',
+        'Description',
         validators=[
             Optional(),
             Length(
                 max=500,
-                message='La descrizione non può superare %(max)d caratteri.'
+                message='Description cannot exceed %(max)d characters.'
             )
         ],
         render_kw={
-            'placeholder': 'Breve descrizione sugli obiettivi o partecipanti del gruppo...',
+            'placeholder': 'Brief description of the group goals or members...',
             'rows': 3
         }
     )
 
 
 class JoinGroupForm(FlaskForm):
-    """Form per unirsi a un gruppo tramite codice."""
+    """Form for joining a group via code."""
     code = StringField(
-        'Codice Gruppo',
+        'Group Code',
         validators=[
-            DataRequired(message='Il codice del gruppo è obbligatorio.'),
+            DataRequired(message='Group code is required.'),
             Length(
                 min=9,
                 max=15,
-                message='Il codice deve essere composto da almeno %(min)d caratteri (trattini inclusi).'
+                message='Code must be at least %(min)d characters (dashes included).'
             )
         ],
         render_kw={
-            'placeholder': 'es. abc-defg-hij',
+            'placeholder': 'e.g. abc-defg-hij',
             'autocomplete': 'off',
             'autofocus': True
         }
@@ -59,17 +59,17 @@ class JoinGroupForm(FlaskForm):
 
 
 class JoinByTokenForm(FlaskForm):
-    """Form per accettare un invito tramite link token. Non ha campi visibili."""
+    """Form for accepting an invite via token link. Has no visible fields."""
 
 
 class ChangeRoleForm(FlaskForm):
-    """Form per cambiare il ruolo di un membro."""
+    """Form for changing a member's role."""
     role = SelectField(
-        'Nuovo Ruolo',
-        validators=[DataRequired(message='Seleziona un ruolo valido.')],
+        'New Role',
+        validators=[DataRequired(message='Please select a valid role.')],
         choices=[
             ('admin', 'Admin'),
-            ('member', 'Membro')
+            ('member', 'Member')
         ],
         render_kw={'class': 'form-control', 'style': 'width: auto;'}
     )

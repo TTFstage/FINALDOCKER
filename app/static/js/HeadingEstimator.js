@@ -19,14 +19,14 @@
  *     affidabile e cross-platform il magnetometro grezzo (mx,my,mz): niente
  *     vero MARG a 6 righe qui, solo eventi già processati dal SO.
  *
- * AVVISO IMPORTANTE SULLA VALIDAZIONE:
- * Le convenzioni di segno/asse (flip del giroscopio su iOS, mappatura yaw -> heading
- * bussola, screenOffset) dipendono da dettagli implementativi di browser e SO che
- * variano e sono note per essere soggette a incoerenze tra versioni. Questo codice
- * segue le convenzioni standard più diffuse ma NON è stato validato su hardware
- * reale in questa sessione. Prima di un uso in produzione: usare getAttitude() per
- * loggare roll/pitch/yaw mentre si ruota manualmente il device su ciascun asse, e
- * correggere i segni che risultassero invertiti.
+ * IMPORTANT VALIDATION NOTICE:
+ * The sign/axis conventions (gyroscope flip on iOS, yaw -> compass heading
+ * mapping, screenOffset) depend on browser and OS implementation details that
+ * vary and are known to be subject to inconsistencies across versions. This code
+ * follows the most common standard conventions but has NOT been validated on real
+ * hardware in this session. Before production use: use getAttitude() to log
+ * roll/pitch/yaw while manually rotating the device on each axis, and correct any
+ * inverted signs.
  */
 
 const DEG2RAD = Math.PI / 180;
@@ -247,8 +247,8 @@ class HeadingEstimator {
     const gy = (event.rotationRate.gamma || 0) * DEG2RAD;
     if (this.isIOS) gz = -gz;
 
-    // Guadagno accelerometrico: amplificato per convergeMs dopo l'init per
-    // allineare rapidamente roll/pitch, poi torna al valore base.
+    // Accelerometer gain: amplified to converge after init to quickly
+    // align roll/pitch, then returns to base value.
     let beta = this.madgwickBeta;
     if (this._initTimeAbs !== null) {
       const elapsed = performance.now() - this._initTimeAbs;

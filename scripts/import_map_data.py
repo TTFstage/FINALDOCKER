@@ -1,8 +1,11 @@
 import os
+
 import pandas as pd
+
 from app import create_app
 from app.map.models import BicycleParking, Station, Toilet
 from extensions import db
+
 
 def import_csv_to_model(file_path, model_cls):
     """Legge un CSV con pandas e inserisce solo i record con ID non esistenti."""
@@ -15,7 +18,7 @@ def import_csv_to_model(file_path, model_cls):
     df = df.where(pd.notnull(df), None)
 
     # Ottieni tutti gli ID già presenti nel database per evitare query individuali
-    existing_ids = set(row[0] for row in db.session.query(model_cls.id).all())
+    existing_ids = {row[0] for row in db.session.query(model_cls.id).all()}
 
     # Filtra il DataFrame mantenendo solo le righe nuove
     df_new = df[~df['id'].isin(existing_ids)]

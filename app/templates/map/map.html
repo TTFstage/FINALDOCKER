@@ -1,62 +1,62 @@
 {% extends "base.html" %}
-{% block title %}Mappa - Fontanelle in Italia{% endblock %}
+{% block title %}Map - Water Fountains in Italy{% endblock %}
 
 {% block content %}
-<!-- Selettore overlay -->
+<!-- Overlay selector -->
 <div id="overlay-selector" class="overlay-selector" style="margin-bottom: 10px;">
-  <label><input type="checkbox" data-overlay="stations" checked /> Fontanelle</label>
-  <label><input type="checkbox" data-overlay="toilets" /> Bagni</label>
-  <label><input type="checkbox" data-overlay="bicycleParkings" /> Parcheggi bici</label>
+  <label><input type="checkbox" data-overlay="stations" checked /> Fountains</label>
+  <label><input type="checkbox" data-overlay="toilets" /> Toilets</label>
+  <label><input type="checkbox" data-overlay="bicycleParkings" /> Bicycle Parkings</label>
 
 </div>
 
-<!-- Hint zoom -->
+<!-- Zoom hint -->
 <div id="zoom-hint" class="zoom-hint" hidden style="color: orange; font-weight: bold; margin-bottom: 10px;">
-  Aumenta lo zoom per vedere i punti in questa zona.
+  Zoom in to see points in this area.
 </div>
 
-<!-- Navigatore -->
+<!-- Navigator -->
 <div id="nav-toggle-bar" style="margin-bottom: 10px;">
   <button id="nav-toggle" aria-expanded="false" aria-controls="nav-panel">
-    🚴 Navigatore ciclabile
+    🚴 Cycling Navigator
   </button>
 </div>
 
 <div id="nav-panel" class="hidden" style="display: none; border: 1px solid #ccc; padding: 10px; margin-bottom: 10px;">
   <div class="nav-section">
-    <strong>Tappe del percorso</strong>
+    <strong>Route waypoints</strong>
     <div id="wp-list"></div>
   </div>
 
   <div class="nav-section">
     <div class="nav-row">
-      <input id="wp-search-input" type="text" placeholder="Cerca indirizzo o luogo…" autocomplete="off" />
-      <button id="wp-search-btn" title="Aggiungi indirizzo">➕</button>
+      <input id="wp-search-input" type="text" placeholder="Search address or place…" autocomplete="off" />
+      <button id="wp-search-btn" title="Add address">➕</button>
     </div>
     <div class="nav-row nav-row-wrap">
-      <button id="use-location-btn" class="nav-btn-sec">📍 Usa posizione attuale</button>
-      <button id="map-click-add-btn" class="nav-btn-sec">🖱️ Seleziona punto su mappa</button>
+      <button id="use-location-btn" class="nav-btn-sec">📍 Use current location</button>
+      <button id="map-click-add-btn" class="nav-btn-sec">🖱️ Select point on map</button>
     </div>
   </div>
 
   <div class="nav-section">
-    <strong>Aggiungi al percorso</strong>
+    <strong>Add to route</strong>
     <div class="nav-row nav-row-wrap">
-      <button id="add-nearest-fountain-btn" class="nav-btn-sec" disabled>💧 Fontanella più vicina</button>
-      <button id="add-nearest-parking-btn" class="nav-btn-sec" disabled>🅿️ Parcheggio bici più vicino</button>
+      <button id="add-nearest-fountain-btn" class="nav-btn-sec" disabled>💧 Nearest fountain</button>
+      <button id="add-nearest-parking-btn" class="nav-btn-sec" disabled>🅿️ Nearest bicycle parking</button>
     </div>
   </div>
 
   <div class="nav-section">
     <div class="nav-row">
-      <button id="calc-route-btn" class="nav-btn-primary" disabled>🗺️ Calcola percorso</button>
-      <button id="clear-route-btn" class="nav-btn-danger">🗑️ Azzera</button>
+      <button id="calc-route-btn" class="nav-btn-primary" disabled>🗺️ Calculate route</button>
+      <button id="clear-route-btn" class="nav-btn-danger">🗑️ Clear</button>
     </div>
     <p id="nav-msg" class="nav-msg"></p>
   </div>
 </div>
 
-<!-- Mappa -->
+<!-- Map -->
 <div id="map" style="height: 600px; width: 100%; border: 1px solid #ccc;"></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -69,7 +69,7 @@
 <script src="{{ url_for('static', filename='map/js/map.js') }}"></script>
 
 <script>
-    // Configura Leaflet per gestire il toggle del navigatore
+    // Configure Leaflet to handle the navigator toggle
     document.getElementById('nav-toggle').addEventListener('click', function() {
         const panel = document.getElementById('nav-panel');
         const expanded = this.getAttribute('aria-expanded') === 'true';
@@ -77,9 +77,9 @@
         panel.style.display = expanded ? 'none' : 'block';
     });
 
-    // Mostra la posizione dei membri del gruppo se group_id è fornito
+    // Show group member positions if group_id is provided
     {% if group_id and members %}
-        // Assicurati che map.js abbia inizializzato window.map e window.L
+        // Make sure map.js has initialized window.map and window.L
         const groupId = {{ group_id }};
         const members = [
             {% for m in members %}
@@ -87,11 +87,11 @@
             {% endfor %}
         ];
         
-        // Polling delle posizioni
+        // Position polling
         const memberMarkers = {};
         
         function updateMemberPositions() {
-            if (!window.map) return; // Attendi che la mappa sia pronta
+            if (!window.map) return; // Wait for map to be ready
             
             members.forEach(member => {
                 fetch(`/groups/${groupId}/member/${member.id}/position`)
@@ -106,18 +106,18 @@
                                 memberMarkers[member.id].setLatLng([data.lat, data.lng]);
                             }
                         } else if (memberMarkers[member.id]) {
-                            // Se la posizione non è più disponibile, potremmo rimuovere il marker
+                            // If position is no longer available, we could remove the marker
                             // window.map.removeLayer(memberMarkers[member.id]);
                             // delete memberMarkers[member.id];
                         }
                     })
-                    .catch(e => console.error("Errore fetch posizione:", e));
+                    .catch(e => console.error("Error fetching position:", e));
             });
         }
         
-        // Aggiorna ogni 5 secondi
+        // Update every 5 seconds
         setInterval(updateMemberPositions, 5000);
-        // Prima chiamata dopo 1 secondo per dare tempo alla mappa di inizializzarsi
+        // First call after 1 second to give the map time to initialize
         setTimeout(updateMemberPositions, 1000);
     {% endif %}
 </script>

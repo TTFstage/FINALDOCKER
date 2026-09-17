@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 
-{% block title %}Gruppi{% endblock %}
+{% block title %}Groups{% endblock %}
 
 {% block content %}
-    <h1>I Miei Gruppi</h1>
+    <h1>My Groups</h1>
     <p>
-        <a href="{{ url_for('group.create') }}">+ Crea gruppo</a> |
-        <a href="{{ url_for('group.join') }}">Entra con codice</a>
+        <a href="{{ url_for('group.create') }}">+ Create group</a> |
+        <a href="{{ url_for('group.join') }}">Join with code</a>
     </p>
     <hr>
 
@@ -15,11 +15,11 @@
         {% for m in memberships %}
         <li>
             <a href="{{ url_for('group.detail', group_id=m.group.id) }}">{{ m.group.name }}</a>
-            (Ruolo: {{ m.role }})
+            (Role: {{ m.role }})
         </li>
         {% endfor %}
     </ul>
     {% else %}
-    <p>Non fai parte di nessun gruppo.</p>
+    <p>You are not a member of any group.</p>
     {% endif %}
 {% endblock %}

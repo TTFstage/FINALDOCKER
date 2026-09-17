@@ -1,4 +1,4 @@
-"""Gestione dello streaming append-only dei punti GPS e produzione del file .gpx finale."""
+"""Append-only GPS point streaming management and final .gpx file production."""
 import logging
 import math
 import os
@@ -26,7 +26,7 @@ def _iso_from_epoch_ms(ts_ms: float) -> str:
 
 
 class GPXStreamManager:
-    """Buffer RAM per-sessione + append-only su disco, con export .gpx compresso via RDP alla chiusura."""
+    """Per-session RAM buffer + append-only on disk, with RDP-compressed .gpx export on close."""
 
     def __init__(self, output_base_dir: str, buffer_size: int = 50) -> None:
         self.output_base_dir = output_base_dir
@@ -49,12 +49,12 @@ class GPXStreamManager:
         elev: float | None,
         timestamp: float,
     ) -> None:
-        # Scarta i punti senza fix GPS valida (lat/lon nulli, es. primi campioni
-        # prima che watchPosition restituisca la prima posizione): un valore
-        # None scritto su disco romperebbe il parsing in _read_points.
+        # Discard points without a valid GPS fix (null lat/lon, e.g. first samples
+        # before watchPosition returns the first position): a None value
+        # written to disk would break parsing in _read_points.
         if lat is None or lon is None:
             logger.debug(
-                "Punto scartato per coordinate mancanti (user=%s session=%s)", user_id, session_id
+                "Point discarded due to missing coordinates (user=%s session=%s)", user_id, session_id
             )
             return
 
@@ -87,10 +87,10 @@ class GPXStreamManager:
                     lat_s, lon_s, elev_s, ts_s = line.split(",")
                     points.append((float(lat_s), float(lon_s), float(elev_s) if elev_s else None, float(ts_s)))
                 except ValueError:
-                    # Riga corrotta (es. valori 'None' scritti da versioni precedenti
-                    # del worker): la scartiamo invece di far fallire l'intera sessione.
+                    # Corrupted line (e.g. 'None' values written by previous versions
+                    # of the worker): discard instead of failing the entire session.
                     logger.warning(
-                        "Riga %d non valida in %s, scartata: %r", line_no, tmp_path, line
+                        "Invalid line %d in %s, discarded: %r", line_no, tmp_path, line
                     )
         return points
 
@@ -107,7 +107,7 @@ class GPXStreamManager:
 
         points = self._read_points(user_id, session_id)
         if not points:
-            logger.warning("Nessun punto per user=%s session=%s, nessun .gpx generato.", user_id, session_id)
+            logger.warning("No points for user=%s session=%s, no .gpx generated.", user_id, session_id)
             return None
 
         if apply_rdp and len(points) >= 3:
@@ -127,7 +127,7 @@ class GPXStreamManager:
         duration_min = (points[-1][3] - points[0][3]) / 60000.0 if len(points) > 1 else 0.0
 
         logger.info(
-            "Sessione chiusa: user=%s session=%s punti=%d distanza_km=%.3f durata_min=%.1f -> %s",
+            "Session closed: user=%s session=%s points=%d distance_km=%.3f duration_min=%.1f -> %s",
             user_id, session_id, len(points), total_distance_km, duration_min, final_path,
         )
         return final_path, total_distance_km, duration_min

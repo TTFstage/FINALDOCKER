@@ -1,99 +1,140 @@
 from flask_security import RegisterFormV2
 from flask_wtf import FlaskForm
-from wtforms import SelectField, StringField
-from wtforms.validators import DataRequired, Length, Optional, Regexp
+from wtforms import DateField, SelectField, StringField
+from wtforms.validators import DataRequired, Length, Optional, Regexp, ValidationError
+
+
+def validate_tax_id_code(form, field):
+    cf = str(field.data or '').upper().strip()
+    if len(cf) != 16:
+        raise ValidationError('The tax ID code must be 16 characters long.')
+    if not cf[:6].isalpha() or not cf[6:8].isdigit() or not cf[8].isalpha() or not cf[9:11].isdigit() or not cf[11].isalpha() or not cf[12:15].isdigit() or not cf[15].isalpha():
+        raise ValidationError('Invalid tax ID code format.')
 
 
 class ExtendedRegisterForm(RegisterFormV2):
-    """Form esteso di registrazione con campi aggiuntivi."""
+    """Extended registration form with additional fields."""
+    tax_id_code = StringField(
+        'Tax ID Code',
+        validators=[
+            DataRequired(message='The tax ID code is required.'),
+            Length(min=16, max=16, message='The tax ID code must be 16 characters long.'),
+            Regexp(r'^[A-Z0-9]{16}$', message='Invalid format.'),
+            validate_tax_id_code
+        ],
+        render_kw={'placeholder': 'RSSMRA85T10A562S'},
+        filters=[lambda x: x.upper() if x else x]
+    )
+    full_name = StringField(
+        'Full Name',
+        validators=[DataRequired(message='Full name is required.'), Length(min=2, max=200)],
+        render_kw={'placeholder': 'Mario Rossi'}
+    )
+    date_of_birth = DateField(
+        'Date of Birth',
+        validators=[DataRequired(message='Date of birth is required.')],
+        render_kw={'placeholder': 'yyyy-mm-dd'},
+        format='%Y-%m-%d'
+    )
+    gender = SelectField(
+        'Gender',
+        validators=[DataRequired(message='Please select a gender.')],
+        choices=[('', 'Select...'), ('M', 'Male'), ('F', 'Female')],
+        default=''
+    )
+    birth_city_country = StringField(
+        'City or Country of Birth',
+        validators=[DataRequired(message='City or country of birth is required.'), Length(min=2, max=200)],
+        render_kw={'placeholder': 'Rome or France'}
+    )
     phone_number = StringField(
-        'Numero di Telefono',
+        'Phone Number',
         validators=[
             Optional(),
             Length(
                 max=20,
-                message='Il numero di telefono non può superare %(max)d caratteri.'
+                message='The phone number cannot exceed %(max)d characters.'
             ),
             Regexp(
                 r'^[\d\s\+\-\(\)]*$',
-                message='Il numero di telefono contiene caratteri non validi.'
+                message='The phone number contains invalid characters.'
             )
         ],
         render_kw={'placeholder': '+39 333 1234567'}
     )
 
-    # Override del validatore username per messaggi più chiari
+    # Override username validator for clearer messages
     @classmethod
     def get_username_validators(cls):
         return [
             Length(
                 min=3,
                 max=50,
-                message='Lo username deve essere tra %(min)d e %(max)d caratteri.'
+                message='Username must be between %(min)d and %(max)d characters.'
             )
         ]
 
-    # Override del validatore email per messaggi più chiari
+    # Override email validator for clearer messages
     @classmethod
     def get_email_validators(cls):
         return [
             Length(
                 min=5,
                 max=120,
-                message='L\'email deve essere tra %(min)d e %(max)d caratteri.'
+                message='Email must be between %(min)d and %(max)d characters.'
             )
         ]
 
-    # Override del validatore password per messaggi più chiari
+    # Override password validator for clearer messages
     @classmethod
     def get_password_validators(cls, field):
         return []
 
 
 class SOSContactForm(FlaskForm):
-    """Form per aggiungere/modificare un contatto SOS."""
+    """Form to add/edit an SOS contact."""
     name = StringField(
-        'Nome Completo',
+        'Full Name',
         validators=[
-            DataRequired(message='Il nome è obbligatorio.'),
-            Length(min=2, max=100, message='Il nome deve essere tra %(min)d e %(max)d caratteri.')
+            DataRequired(message='Name is required.'),
+            Length(min=2, max=100, message='Name must be between %(min)d and %(max)d characters.')
         ],
-        render_kw={'placeholder': 'Es. Maria Rossi', 'autofocus': True}
+        render_kw={'placeholder': 'e.g. Maria Rossi', 'autofocus': True}
     )
     phone = StringField(
-        'Numero di Telefono',
+        'Phone Number',
         validators=[
-            DataRequired(message='Il numero di telefono è obbligatorio.'),
-            Length(min=5, max=20, message='Il numero deve essere tra %(min)d e %(max)d caratteri.'),
+            DataRequired(message='Phone number is required.'),
+            Length(min=5, max=20, message='Number must be between %(min)d and %(max)d characters.'),
             Regexp(
                 r'^[\d\s\+\-\(\)]+$',
-                message='Numero di telefono non valido. Usa solo cifre, spazi e i caratteri + - ( ).'
+                message='Invalid phone number. Use only digits, spaces and the characters + - ( ).'
             )
         ],
-        render_kw={'placeholder': 'Es. +39 333 1234567'}
+        render_kw={'placeholder': 'e.g. +39 333 1234567'}
     )
     relationship = SelectField(
-        'Relazione',
+        'Relationship',
         validators=[Optional()],
         choices=[
-            ('', 'Seleziona...'),
-            ('Coniuge/Partner', 'Coniuge/Partner'),
-            ('Genitore', 'Genitore'),
-            ('Fratello/Sorella', 'Fratello/Sorella'),
-            ('Figlio/a', 'Figlio/a'),
-            ('Amico/a', 'Amico/a'),
-            ('Collega', 'Collega'),
-            ('Altro', 'Altro')
+            ('', 'Select...'),
+            ('Spouse/Partner', 'Spouse/Partner'),
+            ('Parent', 'Parent'),
+            ('Sibling', 'Sibling'),
+            ('Child', 'Child'),
+            ('Friend', 'Friend'),
+            ('Colleague', 'Colleague'),
+            ('Other', 'Other')
         ],
         default=''
     )
     priority = SelectField(
-        'Priorità',
+        'Priority',
         validators=[Optional()],
         choices=[
-            ('0', 'Bassa'),
-            ('1', 'Media'),
-            ('2', 'Alta')
+            ('0', 'Low'),
+            ('1', 'Medium'),
+            ('2', 'High')
         ],
         default='1',
         coerce=int

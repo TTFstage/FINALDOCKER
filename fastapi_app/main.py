@@ -1,10 +1,11 @@
-"""API di ingestion: riceve la telemetria dal client e la pubblica su RabbitMQ (nessuna persistenza su DB)."""
+"""Ingestion API: receives telemetry from the client and publishes it to RabbitMQ (no DB persistence)."""
 import json
 import logging
 import os
 
 import pika
-from fastapi import FastAPI, HTTPException
+import requests
+from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel, field_validator
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
@@ -20,7 +21,7 @@ app = FastAPI(title="Sensor Ingest API")
 
 
 class TelemetryPoint(BaseModel):
-    """Unico payload accettato dal client: nessun dato grezzo dei sensori viene inoltrato al server."""
+    """Single payload accepted from the client: no raw sensor data is forwarded to the server."""
     user_id: str
     session_id: str
     lat: float | None = None
@@ -33,13 +34,13 @@ class TelemetryPoint(BaseModel):
     @field_validator("user_id", mode="before")
     @classmethod
     def _coerce_user_id(cls, v):
-        # Accetta sia stringa che numero: alcuni client (es. tojson su un int)
-        # possono inviare user_id come JSON number invece che come stringa.
+        # Accept both string and number: some clients (e.g. tojson on an int)
+        # may send user_id as a JSON number instead of a string.
         return str(v) if v is not None else v
 
 
 class SessionEnd(BaseModel):
-    """Segnala la chiusura di un turno di tracciamento: fa scattare la chiusura del file GPX."""
+    """Signals the closure of a tracking session: triggers the GPX file close."""
     user_id: str
     session_id: str
 
@@ -50,7 +51,7 @@ class SessionEnd(BaseModel):
 
 
 class RabbitMQPublisher:
-    """Connessione persistente verso RabbitMQ con riconnessione automatica in caso di errore."""
+    """Persistent connection to RabbitMQ with automatic reconnection on error."""
 
     def __init__(self) -> None:
         self._connection: pika.BlockingConnection | None = None
@@ -67,7 +68,7 @@ class RabbitMQPublisher:
         self._connection = pika.BlockingConnection(params)
         self._channel = self._connection.channel()
         self._channel.queue_declare(queue=RABBITMQ_QUEUE, durable=True)
-        logger.info("Connesso a RabbitMQ (%s:%s), coda '%s' pronta.", RABBITMQ_HOST, RABBITMQ_PORT, RABBITMQ_QUEUE)
+        logger.info("Connected to RabbitMQ (%s:%s), queue '%s' ready.", RABBITMQ_HOST, RABBITMQ_PORT, RABBITMQ_QUEUE)
 
     def publish(self, body: bytes) -> None:
         if self._connection is None or self._connection.is_closed:
@@ -80,7 +81,7 @@ class RabbitMQPublisher:
                 properties=pika.BasicProperties(delivery_mode=2, content_type="application/json"),
             )
         except pika.exceptions.AMQPError:
-            logger.warning("Connessione RabbitMQ persa, riconnessione in corso...")
+            logger.warning("RabbitMQ connection lost, reconnecting...")
             self._connect()
             self._channel.basic_publish(
                 exchange="",
@@ -93,35 +94,65 @@ class RabbitMQPublisher:
 publisher = RabbitMQPublisher()
 
 
+def verify_flask_session(request: Request):
+    """Verifies the Flask session cookie by calling the internal auth endpoint."""
+    cookies = request.headers.get("cookie", "")
+    try:
+        cookie_dict = {}
+        for part in cookies.split(";"):
+            if "=" in part:
+                k, v = part.strip().split("=", 1)
+                cookie_dict[k] = v
+        session_cookie = cookie_dict.get("session")
+        resp = requests.get(
+            "http://web:8000/auth/check_session",
+            cookies={"session": session_cookie} if session_cookie else {},
+            timeout=2,
+        )
+        if resp.status_code == 200 and resp.json().get("authenticated"):
+            return resp.json()
+    except Exception:  # noqa: BLE001
+        logger.debug("Failed to verify Flask session cookie")
+    raise HTTPException(status_code=401, detail="Invalid or missing session")
+
+
 @app.get("/healthz")
 def healthz():
     return {"status": "ok"}
 
 
 @app.post("/stream")
-def handle_stream(points: list[TelemetryPoint]):
+def handle_stream(points: list[TelemetryPoint], request: Request):
+    session = verify_flask_session(request)
     if not points:
         return {"status": "ok", "count": 0}
 
+    auth_user_id = str(session.get("user_id"))
+
     try:
         for point in points:
-            envelope = {"type": "point", **point.model_dump()}
+            # Bind payload to the authenticated session user (prevent impersonation)
+            envelope = {"type": "point", "user_id": auth_user_id, **point.model_dump(exclude={"user_id"})}
+            envelope["user_id"] = auth_user_id
             publisher.publish(json.dumps(envelope).encode("utf-8"))
     except Exception as exc:
-        logger.error("Errore pubblicazione su RabbitMQ: %s", exc)
-        raise HTTPException(status_code=503, detail="Impossibile inoltrare i dati a RabbitMQ") from exc
+        logger.error("Error publishing to RabbitMQ: %s", exc)
+        raise HTTPException(status_code=503, detail="Unable to forward data to RabbitMQ") from exc
 
     return {"status": "ok", "count": len(points)}
 
 
 @app.post("/session/end")
-def handle_session_end(payload: SessionEnd):
-    """Segnala al worker GPS di chiudere il buffer, applicare RDP ed esportare il file .gpx finale."""
+def handle_session_end(payload: SessionEnd, request: Request):
+    session = verify_flask_session(request)
+    """Signals the GPS worker to close the buffer, apply RDP and export the final .gpx file."""
+    auth_user_id = str(session.get("user_id"))
     try:
-        envelope = {"type": "session_end", **payload.model_dump()}
+        envelope = {"type": "session_end", "user_id": auth_user_id, **payload.model_dump(exclude={"user_id"})}
+        envelope["user_id"] = auth_user_id
         publisher.publish(json.dumps(envelope).encode("utf-8"))
     except Exception as exc:
-        logger.error("Errore pubblicazione fine sessione su RabbitMQ: %s", exc)
-        raise HTTPException(status_code=503, detail="Impossibile inoltrare la chiusura sessione a RabbitMQ") from exc
+        logger.error("Error publishing session end to RabbitMQ: %s", exc)
+        raise HTTPException(status_code=503, detail="Unable to forward session end to RabbitMQ") from exc
 
     return {"status": "ok"}

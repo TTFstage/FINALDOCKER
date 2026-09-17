@@ -15,14 +15,14 @@ from extensions import db, redis_client
 
 
 def normalize_code(code: str) -> str:
-    """Normalizza un codice gruppo rimuovendo spazi e trattini."""
+    """Normalizes a group code by removing spaces and dashes."""
     return code.replace('-', '').replace(' ', '').lower()
 
 
 @group_bp.route('/', methods=['GET'])
 @auth_required()
 def index():
-    """Elenco dei gruppi di cui l'utente corrente fa parte."""
+    """List of groups the current user belongs to."""
     memberships = (
         GroupMembership.query.filter_by(user_id=current_user.id)
         .join(Group)
@@ -35,11 +35,11 @@ def index():
 @group_bp.route('/create', methods=['GET', 'POST'])
 @auth_required()
 def create():
-    """Creazione di un nuovo gruppo."""
+    """Create a new group."""
     form = CreateGroupForm()
 
     if form.validate_on_submit():
-        # Genera un codice univoco (xxx-yyyy-zzz)
+        # Generate a unique code (xxx-yyyy-zzz)
         code = Group.generate_group_code()
         while Group.query.filter_by(code=code).first() is not None:
             code = Group.generate_group_code()
@@ -49,13 +49,13 @@ def create():
             description=form.description.data.strip() or None,
             code=code
         )
-        # Genera il token di sicurezza iniziale per i link d'invito
+        # Generate the initial security token for invite links
         new_group.generate_security_token()
 
         db.session.add(new_group)
-        db.session.flush()  # Popola new_group.id
+        db.session.flush()  # Populate new_group.id
 
-        # Assegna l'utente corrente come owner del gruppo
+        # Assign the current user as the group owner
         membership = GroupMembership(
             user_id=current_user.id,
             group_id=new_group.id,
@@ -64,10 +64,10 @@ def create():
         db.session.add(membership)
         db.session.commit()
 
-        flash(f"Gruppo '{new_group.name}' creato con successo!", "success")
+        flash(f"Group '{new_group.name}' created successfully!", "success")
         return redirect(url_for('group.detail', group_id=new_group.id))
 
-    # GET request o validazione fallita
+    # GET request or failed validation
     return render_template(
         'group/create.html',
         form=form,
@@ -79,7 +79,7 @@ def create():
 @group_bp.route('/<int:group_id>', methods=['GET'])
 @auth_required()
 def detail(group_id):
-    """Scheda di dettaglio del gruppo, membri e gestione inviti."""
+    """Group detail page with members and invite management."""
     group = Group.query.get_or_404(group_id)
 
     membership = GroupMembership.query.filter_by(
@@ -87,7 +87,7 @@ def detail(group_id):
     ).first()
 
     if not membership:
-        flash("Non fai parte di questo gruppo.", "error")
+        flash("You are not a member of this group.", "error")
         return redirect(url_for('group.index'))
 
     invite_url = None
@@ -112,7 +112,7 @@ def detail(group_id):
 @group_bp.route('/<int:group_id>/token/generate', methods=['POST'])
 @auth_required()
 def generate_token(group_id):
-    """Genera o rigenera un token di sicurezza per il gruppo (invito via link)."""
+    """Generates or regenerates a security token for the group (invite via link)."""
     group = Group.query.get_or_404(group_id)
 
     membership = GroupMembership.query.filter_by(
@@ -120,20 +120,20 @@ def generate_token(group_id):
     ).first()
 
     if not membership or membership.role not in ['owner', 'admin']:
-        flash("Non hai i permessi per eseguire questa operazione.", "error")
+        flash("You do not have permission to perform this operation.", "error")
         return redirect(url_for('group.detail', group_id=group.id))
 
     group.generate_security_token()
     db.session.commit()
 
-    flash("Nuovo link di invito generato con successo!", "success")
+    flash("New invite link generated successfully!", "success")
     return redirect(url_for('group.detail', group_id=group.id))
 
 
 @group_bp.route('/<int:group_id>/token/revoke', methods=['POST'])
 @auth_required()
 def revoke_token(group_id):
-    """Revoca il token di sicurezza, disabilitando i link d'invito attivi."""
+    """Revokes the security token, disabling active invite links."""
     group = Group.query.get_or_404(group_id)
 
     membership = GroupMembership.query.filter_by(
@@ -141,20 +141,20 @@ def revoke_token(group_id):
     ).first()
 
     if not membership or membership.role not in ['owner', 'admin']:
-        flash("Non hai i permessi per eseguire questa operazione.", "error")
+        flash("You do not have permission to perform this operation.", "error")
         return redirect(url_for('group.detail', group_id=group.id))
 
     group.revoke_security_token()
     db.session.commit()
 
-    flash("Link di invito revocato con successo. I vecchi link non sono più validi.", "info")
+    flash("Invite link revoked successfully. Old links are no longer valid.", "info")
     return redirect(url_for('group.detail', group_id=group.id))
 
 
 @group_bp.route('/<int:group_id>/code/generate', methods=['POST'])
 @auth_required()
 def generate_code(group_id):
-    """Rigenera il codice del gruppo."""
+    """Regenerates the group code."""
     group = Group.query.get_or_404(group_id)
 
     membership = GroupMembership.query.filter_by(
@@ -162,10 +162,10 @@ def generate_code(group_id):
     ).first()
 
     if not membership or membership.role not in ['owner', 'admin']:
-        flash("Non hai i permessi per eseguire questa operazione.", "error")
+        flash("You do not have permission to perform this operation.", "error")
         return redirect(url_for('group.detail', group_id=group.id))
 
-    # Genera un nuovo codice univoco
+    # Generate a new unique code
     new_code = Group.generate_group_code()
     while Group.query.filter_by(code=new_code).first() is not None:
         new_code = Group.generate_group_code()
@@ -173,28 +173,28 @@ def generate_code(group_id):
     group.code = new_code
     db.session.commit()
 
-    flash("Nuovo codice gruppo generato con successo! Il vecchio codice non è più valido.", "success")
+    flash("New group code generated successfully! The old code is no longer valid.", "success")
     return redirect(url_for('group.detail', group_id=group.id))
 
 
 @group_bp.route('/<int:group_id>/member/<int:user_id>/role', methods=['POST'])
 @auth_required()
 def change_role(group_id, user_id):
-    """Cambia il ruolo di un membro (solo l'owner può farlo)."""
+    """Changes a member's role (only the owner can do this)."""
     group = Group.query.get_or_404(group_id)
 
-    # Verifica che l'utente corrente sia l'owner
+    # Verify that the current user is the owner
     current_membership = GroupMembership.query.filter_by(
         user_id=current_user.id, group_id=group.id
     ).first()
 
     if not current_membership or current_membership.role != 'owner':
-        flash("Solo l'owner del gruppo può modificare i ruoli.", "error")
+        flash("Only the group owner can modify roles.", "error")
         return redirect(url_for('group.detail', group_id=group.id))
 
-    # Impedisci all'owner di modificare se stesso
+    # Prevent the owner from modifying themselves
     if current_user.id == user_id:
-        flash("Non puoi modificare il tuo stesso ruolo.", "error")
+        flash("You cannot change your own role.", "error")
         return redirect(url_for('group.detail', group_id=group.id))
 
     target_membership = GroupMembership.query.filter_by(
@@ -206,9 +206,9 @@ def change_role(group_id, user_id):
     if form.validate_on_submit():
         target_membership.role = form.role.data
         db.session.commit()
-        flash(f"Ruolo di {target_membership.user.username} aggiornato a {form.role.data}.", "success")
+        flash(f"Role of {target_membership.user.username} updated to {form.role.data}.", "success")
     else:
-        flash("Ruolo non valido.", "error")
+        flash("Invalid role.", "error")
 
     return redirect(url_for('group.detail', group_id=group.id))
 
@@ -216,20 +216,20 @@ def change_role(group_id, user_id):
 @group_bp.route('/join', methods=['GET', 'POST'])
 @auth_required()
 def join():
-    """Inserimento manuale del codice univoco (es. abc-defg-hij)."""
+    """Manual entry of the unique code (e.g. abc-defg-hij)."""
     form = JoinGroupForm()
 
     if form.validate_on_submit():
         normalized_code = normalize_code(form.code.data)
 
-        # Cerca per codice normalizzato
+        # Search by normalized code
         group = Group.query.filter(
             (Group.code == normalized_code) | 
             (Group.code == form.code.data.lower())
         ).first()
 
         if not group:
-            flash("Nessun gruppo trovato con il codice specificato. Verifica e riprova.", "error")
+            flash("No group found with the specified code. Please check and try again.", "error")
             return render_template('group/join.html', form=form, entered_code=form.code.data)
 
         existing_membership = GroupMembership.query.filter_by(
@@ -237,7 +237,7 @@ def join():
         ).first()
 
         if existing_membership:
-            flash(f"Fai già parte del gruppo '{group.name}'.", "info")
+            flash(f"You are already a member of group '{group.name}'.", "info")
             return redirect(url_for('group.detail', group_id=group.id))
 
         new_membership = GroupMembership(
@@ -248,21 +248,21 @@ def join():
         db.session.add(new_membership)
         db.session.commit()
 
-        flash(f"Ti sei unito con successo al gruppo '{group.name}'!", "success")
+        flash(f"You have successfully joined the group '{group.name}'!", "success")
         return redirect(url_for('group.detail', group_id=group.id))
 
-    # GET request o validazione fallita
+    # GET request or failed validation
     return render_template('group/join.html', form=form, entered_code=form.code.data if form.code.data else '')
 
 
 @group_bp.route('/join/<string:token>', methods=['GET', 'POST'])
 @auth_required()
 def join_by_token(token):
-    """Accesso al gruppo tramite link d'invito con token di sicurezza."""
+    """Access to a group via invite link with security token."""
     group = Group.query.filter_by(security_token=token).first()
 
     if not group or not group.security_token:
-        flash("Link di invito non valido o revocato.", "error")
+        flash("Invalid or revoked invite link.", "error")
         return redirect(url_for('group.index'))
 
     existing_membership = GroupMembership.query.filter_by(
@@ -270,7 +270,7 @@ def join_by_token(token):
     ).first()
 
     if existing_membership:
-        flash(f"Fai già parte del gruppo '{group.name}'.", "info")
+        flash(f"You are already a member of group '{group.name}'.", "info")
         return redirect(url_for('group.detail', group_id=group.id))
 
     form = JoinByTokenForm()
@@ -284,7 +284,7 @@ def join_by_token(token):
         db.session.add(new_membership)
         db.session.commit()
 
-        flash(f"Ti sei unito con successo al gruppo '{group.name}'!", "success")
+        flash(f"You have successfully joined the group '{group.name}'!", "success")
         return redirect(url_for('group.detail', group_id=group.id))
 
     return render_template('group/join_invite.html', group=group, token=token, form=form)
@@ -303,7 +303,7 @@ def member_position(group_id, user_id):
     if not requester or not target:
         abort(403)
 
-    # user_id = user_id (soluzione 1): la chiave Redis coincide
+    # user_id = user_id (solution 1): the Redis key matches
     data = redis_client.get(f"position:{user_id}")
     if not data:
         return jsonify({"available": False})
