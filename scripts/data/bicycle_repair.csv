@@ -1,2 +1,2 @@
-@id|amenity|name|@lat|@lon|opening_hours|phone|gh5
-1001|bicycle_repair|Ciclofficina Roma|41.9028|12.4964|Mon-Sat 09:00-19:00|+39 06 1234 5678|u33d0
+@id,amenity,name,@lat,@lon,opening_hours,phone,gh5
+1001,bicycle_repair,Ciclofficina Roma,41.9028,12.4964,Mon-Sat 09:00-19:00,+39 06 1234 5678,u33d0
