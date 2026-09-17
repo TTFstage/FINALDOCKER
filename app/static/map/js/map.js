@@ -5,6 +5,7 @@
 
   const ENTITY_CONFIG = {
     stations: { url: "/api/v1/fountains", color: "#2563eb", label: "Fountain" },
+    bicycle_repair: { url: "/api/v1/bicycle_repair", color: "#e63946", label: "Ciclofficina" },
     toilets: { url: "/api/v1/toilets", color: "#16a34a", label: "Public toilet" },
     bicycleParkings: {
       url: "/api/v1/bicycle-parkings",

@@ -3,7 +3,7 @@ import os
 import pandas as pd
 
 from app import create_app
-from app.map.models import BicycleParking, Station, Toilet
+from app.map.models import BicycleParking, BicycleRepair, Station, Toilet
 from extensions import db
 
 
@@ -42,6 +42,7 @@ def import_data():
 
         import_csv_to_model(os.path.join(base_dir, 'stations.csv'), Station)
         import_csv_to_model(os.path.join(base_dir, 'toilets.csv'), Toilet)
+        import_csv_to_model(os.path.join(base_dir, 'bicycle_repair.csv'), BicycleRepair)
         import_csv_to_model(os.path.join(base_dir, 'bicycle_parkings.csv'), BicycleParking)
 
         print("Import completato con successo.")

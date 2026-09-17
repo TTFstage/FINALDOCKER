@@ -155,4 +155,4 @@ def handle_session_end(payload: SessionEnd, request: Request):
         logger.error("Error publishing session end to RabbitMQ: %s", exc)
         raise HTTPException(status_code=503, detail="Unable to forward session end to RabbitMQ") from exc
 
-    return {"status": "ok"}
+    return {"status": "ok"}# Endpoint bicycle_repair (aggiungere): @app.get("/api/v1/bicycle_repair") def get_repair(): ...

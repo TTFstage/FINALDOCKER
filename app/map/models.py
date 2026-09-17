@@ -26,6 +26,21 @@ class Station(db.Model):
         }
 
 
+class BicycleRepair(db.Model):
+    __tablename__ = "bicycle_repair"
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String, nullable=True)
+    lat = db.Column(db.Float, nullable=False)
+    lng = db.Column(db.Float, nullable=False)
+    opening_hours = db.Column(db.String, nullable=True)
+    phone = db.Column(db.String, nullable=True)
+    gh5 = db.Column(db.String, index=True, nullable=False)
+
+    def to_dict(self):
+        return {"id": self.id, "name": self.name, "lat": self.lat, "lng": self.lng,
+                "opening_hours": self.opening_hours, "phone": self.phone, "gh5": self.gh5}
+
+
 class Toilet(db.Model):
     __tablename__ = "toilets"
 
