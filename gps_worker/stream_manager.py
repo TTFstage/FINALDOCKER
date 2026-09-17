@@ -34,16 +34,16 @@ class GPXStreamManager:
         os.makedirs(self.output_base_dir, exist_ok=True)
         self._buffers: dict[tuple[str, str], list[Point]] = {}
 
-    def _tmp_path(self, rider_id: str, session_id: str) -> str:
-        return os.path.join(self.output_base_dir, f"{rider_id}_{session_id}.gpx.tmp")
+    def _tmp_path(self, user_id: str, session_id: str) -> str:
+        return os.path.join(self.output_base_dir, f"{user_id}_{session_id}.gpx.tmp")
 
-    def _final_path(self, rider_id: str, session_id: str) -> str:
-        return os.path.join(self.output_base_dir, f"{rider_id}_{session_id}.gpx")
+    def _final_path(self, user_id: str, session_id: str) -> str:
+        return os.path.join(self.output_base_dir, f"{user_id}_{session_id}.gpx")
 
     def add_point(
         self,
         session_id: str,
-        rider_id: str,
+        user_id: str,
         lat: float | None,
         lon: float | None,
         elev: float | None,
@@ -54,11 +54,11 @@ class GPXStreamManager:
         # None scritto su disco romperebbe il parsing in _read_points.
         if lat is None or lon is None:
             logger.debug(
-                "Punto scartato per coordinate mancanti (rider=%s session=%s)", rider_id, session_id
+                "Punto scartato per coordinate mancanti (user=%s session=%s)", user_id, session_id
             )
             return
 
-        key = (rider_id, session_id)
+        key = (user_id, session_id)
         buffer = self._buffers.setdefault(key, [])
         buffer.append((lat, lon, elev, timestamp))
         if len(buffer) >= self.buffer_size:
@@ -68,13 +68,13 @@ class GPXStreamManager:
         buffer = self._buffers.get(key)
         if not buffer:
             return
-        rider_id, session_id = key
-        with open(self._tmp_path(rider_id, session_id), "a", encoding="utf-8") as fh:
+        user_id, session_id = key
+        with open(self._tmp_path(user_id, session_id), "a", encoding="utf-8") as fh:
             fh.writelines(f"{lat},{lon},{'' if elev is None else elev},{timestamp}\n" for lat, lon, elev, timestamp in buffer)
         self._buffers[key] = []
 
-    def _read_points(self, rider_id: str, session_id: str) -> list[Point]:
-        tmp_path = self._tmp_path(rider_id, session_id)
+    def _read_points(self, user_id: str, session_id: str) -> list[Point]:
+        tmp_path = self._tmp_path(user_id, session_id)
         points: list[Point] = []
         if not os.path.exists(tmp_path):
             return points
@@ -97,26 +97,26 @@ class GPXStreamManager:
     def close_session(
         self,
         session_id: str,
-        rider_id: str,
+        user_id: str,
         apply_rdp: bool = True,
         epsilon: float = 0.00004,
     ) -> tuple[str, float, float] | None:
-        key = (rider_id, session_id)
+        key = (user_id, session_id)
         self._flush(key)
         self._buffers.pop(key, None)
 
-        points = self._read_points(rider_id, session_id)
+        points = self._read_points(user_id, session_id)
         if not points:
-            logger.warning("Nessun punto per rider=%s session=%s, nessun .gpx generato.", rider_id, session_id)
+            logger.warning("Nessun punto per user=%s session=%s, nessun .gpx generato.", user_id, session_id)
             return None
 
         if apply_rdp and len(points) >= 3:
             points = ramer_douglas_peucker(points, epsilon)
 
-        final_path = self._final_path(rider_id, session_id)
+        final_path = self._final_path(user_id, session_id)
         self._write_gpx(points, final_path)
 
-        tmp_path = self._tmp_path(rider_id, session_id)
+        tmp_path = self._tmp_path(user_id, session_id)
         if os.path.exists(tmp_path):
             os.remove(tmp_path)
 
@@ -127,8 +127,8 @@ class GPXStreamManager:
         duration_min = (points[-1][3] - points[0][3]) / 60000.0 if len(points) > 1 else 0.0
 
         logger.info(
-            "Sessione chiusa: rider=%s session=%s punti=%d distanza_km=%.3f durata_min=%.1f -> %s",
-            rider_id, session_id, len(points), total_distance_km, duration_min, final_path,
+            "Sessione chiusa: user=%s session=%s punti=%d distanza_km=%.3f durata_min=%.1f -> %s",
+            user_id, session_id, len(points), total_distance_km, duration_min, final_path,
         )
         return final_path, total_distance_km, duration_min
 
